@@ -9,6 +9,8 @@ import { VenueReachPanel } from '@/components/game/VenueReachPanel'
 import { Header } from '@/components/layout/Header'
 import { PlayerAvatar } from '@/components/player/PlayerAvatar'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { GlassChromeBar } from '@/components/ui/GlassChromeBar'
+import { OverlaySheet } from '@/components/ui/OverlaySheet'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { useAuth } from '@/contexts/AuthContext'
@@ -984,14 +986,11 @@ export function GameDetailsPage() {
       </div>
 
       {confirmNoShow ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/40"
-            aria-label="Close"
-            onClick={() => setConfirmNoShow(null)}
-          />
-          <div className="glass-overlay relative z-10 w-full max-w-md p-5 sm:rounded-[8px]">
+        <OverlaySheet
+          onClose={() => setConfirmNoShow(null)}
+          closeLabel="Close"
+          panelClassName="max-w-md p-5"
+        >
             <p className="text-[18px] font-semibold tracking-tight text-white">
               Mark no-show?
             </p>
@@ -1011,8 +1010,7 @@ export function GameDetailsPage() {
                 Confirm no-show
               </PrimaryButton>
             </div>
-          </div>
-        </div>
+        </OverlaySheet>
       ) : null}
 
       <ReportSheet
@@ -1032,7 +1030,7 @@ export function GameDetailsPage() {
 function GameActionDock({ children }: { children: ReactNode }) {
   return (
     <div className="game-action-dock">
-      <div className="glass-nav rounded-[12px] p-3 lg:rounded-[8px]">{children}</div>
+      <GlassChromeBar className="p-3 lg:rounded-[8px]">{children}</GlassChromeBar>
     </div>
   )
 }

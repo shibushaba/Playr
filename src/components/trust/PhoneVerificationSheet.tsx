@@ -1,3 +1,4 @@
+import { OverlaySheet } from '@/components/ui/OverlaySheet'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { useAuth } from '@/contexts/AuthContext'
@@ -89,14 +90,12 @@ export function PhoneVerificationSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60 sheet-scrim"
-        aria-label="Close"
-        onClick={onClose}
-      />
-      <div className="glass-overlay relative z-10 w-full max-w-lg sm:rounded-[8px]">
+    <OverlaySheet
+      onClose={onClose}
+      closeLabel="Close"
+      lockScroll
+      panelClassName="overflow-hidden"
+    >
         <div className="border-b border-white/10 px-5 py-5">
           <h2 className="text-[18px] font-semibold tracking-tight text-white">
             {step === 'done' ? 'Phone verified' : title}
@@ -190,7 +189,6 @@ export function PhoneVerificationSheet({
             </>
           ) : null}
         </div>
-      </div>
-    </div>
+    </OverlaySheet>
   )
 }

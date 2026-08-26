@@ -1,3 +1,4 @@
+import { OverlaySheet } from '@/components/ui/OverlaySheet'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { toUserMessage } from '@/lib/errors'
@@ -45,10 +46,8 @@ export function ReportSheet({
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
     return () => {
       window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
     }
   }, [open, onClose])
 
@@ -96,14 +95,12 @@ export function ReportSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60 animate-fade-in sheet-scrim"
-        aria-label="Close"
-        onClick={onClose}
-      />
-      <div className="glass-overlay relative z-10 max-h-[85dvh] w-full max-w-lg overflow-y-auto animate-fade-up p-5 sm:rounded-[8px]">
+    <OverlaySheet
+      onClose={onClose}
+      closeLabel="Close"
+      lockScroll
+      panelClassName="max-h-[85dvh] overflow-y-auto p-5"
+    >
         <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4">
           <h2 className="text-[18px] font-semibold tracking-tight text-white">
             {title}
@@ -170,7 +167,6 @@ export function ReportSheet({
             </PrimaryButton>
           </div>
         )}
-      </div>
-    </div>
+    </OverlaySheet>
   )
 }

@@ -1,3 +1,4 @@
+import { OverlaySheet } from '@/components/ui/OverlaySheet'
 import { useLocationDiscovery } from '@/contexts/LocationContext'
 import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -29,14 +30,11 @@ export function LocationPickerSheet() {
   if (!pickerOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60 sheet-scrim"
-        aria-label="Close"
-        onClick={() => setPickerOpen(false)}
-      />
-      <div className="glass-overlay relative z-10 max-h-[80dvh] w-full max-w-lg overflow-hidden sm:rounded-[8px]">
+    <OverlaySheet
+      onClose={() => setPickerOpen(false)}
+      closeLabel="Close location picker"
+      panelClassName="max-h-[80dvh] overflow-hidden"
+    >
         <div className="border-b border-white/10 px-5 py-5">
           <h2 className="text-[18px] font-semibold tracking-tight text-white">
             Choose your area
@@ -132,7 +130,6 @@ export function LocationPickerSheet() {
             Try location again
           </button>
         </div>
-      </div>
-    </div>
+    </OverlaySheet>
   )
 }

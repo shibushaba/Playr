@@ -380,12 +380,44 @@
 
   .glass-overlay {
     position: relative;
-    background: var(--overlay);
-    border: 1px solid rgba(255, 255, 255, 0.13);
-    border-radius: var(--radius);
-    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(var(--blur-overlay)) saturate(150%);
-    -webkit-backdrop-filter: blur(var(--blur-overlay)) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    background: transparent;
+    box-shadow:
+      0 30px 100px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+
+  .glass-overlay::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+  }
+
+  .glass-overlay::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.16) 0%,
+      rgba(255, 255, 255, 0.05) 38%,
+      transparent 100%
+    );
+  }
+
+  .glass-overlay > * {
+    position: relative;
+    z-index: 1;
   }
 
   .glass-nav {
@@ -425,10 +457,19 @@
     -webkit-backdrop-filter: blur(var(--blur-nav)) saturate(155%);
   }
 
-  /* Modal / sheet scrims — heavy blur over content behind */
-  .sheet-scrim {
-    backdrop-filter: blur(var(--blur-scrim)) saturate(130%);
-    -webkit-backdrop-filter: blur(var(--blur-scrim)) saturate(130%);
+  /* Modal / sheet scrims — frosted backdrop */
+  .sheet-scrim,
+  .glass-scrim {
+    cursor: default;
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .glass-scrim-blur {
+    background: rgba(8, 9, 10, 0.28);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
   }
 
   /* Removed — floating chrome should not sit on a full-width black plane */
@@ -443,8 +484,19 @@
       background: rgba(18, 18, 21, 0.92);
     }
     .glass-overlay,
+    .glass-surface,
     .glass-frost {
-      background: rgba(8, 9, 10, 0.96);
+      background: rgba(18, 18, 21, 0.88);
+    }
+    .glass-surface-blur,
+    .glass-chrome-blur,
+    .glass-scrim-blur,
+    .glass-overlay::before {
+      display: none;
+    }
+    .glass-scrim,
+    .sheet-scrim {
+      background: rgba(8, 9, 10, 0.72);
     }
     .glass-nav,
     .chrome-header {
@@ -569,10 +621,10 @@
   }
 
   .chrome-sidebar {
-    background: rgba(18, 18, 21, 0.55);
+    background: rgba(255, 255, 255, 0.06);
     border-right: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(var(--blur-elevated)) saturate(145%);
-    -webkit-backdrop-filter: blur(var(--blur-elevated)) saturate(145%);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
   }
 }
 
@@ -604,10 +656,6 @@
   .game-action-dock {
     margin-top: 1.5rem;
     padding-top: 0.75rem;
-  }
-
-  .game-action-dock .glass-nav {
-    background: rgba(18, 18, 21, 0.45);
   }
 
   @media (min-width: 1024px) {
@@ -678,11 +726,13 @@
     background: transparent;
   }
 
-  /* Frosted glass chrome — blur on a real layer, not pseudo-elements */
+  /* Frosted glass — blur on a real DOM layer (chrome, panels, overlays) */
+  .glass-surface,
   .glass-chrome-bar {
     background: transparent;
   }
 
+  .glass-surface-blur,
   .glass-chrome-blur {
     z-index: 0;
     background: rgba(255, 255, 255, 0.07);
