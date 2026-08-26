@@ -1,0 +1,542 @@
+@import "tailwindcss";
+
+/*
+  PLAYR — Dark graphite environment + real glass materials
+  Environment owns depth. Glass is translucent objects inside it.
+*/
+
+@theme {
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: #08090a;
+  --color-bg-2: #0d0e10;
+  --color-bg-3: #121316;
+  --color-bg-4: #17181b;
+
+  --color-ink: #ffffff;
+  --color-ink-soft: rgba(255, 255, 255, 0.88);
+  --color-muted: rgba(255, 255, 255, 0.55);
+  --color-line: rgba(255, 255, 255, 0.1);
+
+  --color-surface: transparent;
+  --color-paper: rgba(255, 255, 255, 0.045);
+
+  --color-black: #000000;
+  --color-white: #ffffff;
+
+  --color-gray-50: rgba(255, 255, 255, 0.04);
+  --color-gray-100: rgba(255, 255, 255, 0.06);
+  --color-gray-200: rgba(255, 255, 255, 0.1);
+  --color-gray-400: rgba(255, 255, 255, 0.42);
+  --color-gray-600: rgba(255, 255, 255, 0.55);
+  --color-gray-900: #0d0e10;
+
+  --color-brand: #ffffff;
+  --color-brand-bright: #ffffff;
+  --color-brand-soft: rgba(255, 255, 255, 0.08);
+  --color-accent: #ffffff;
+  --color-accent-soft: rgba(255, 255, 255, 0.06);
+  --color-warn: rgba(255, 255, 255, 0.7);
+  --color-warn-soft: rgba(255, 255, 255, 0.06);
+  --color-danger: #ffffff;
+  --color-danger-soft: rgba(255, 255, 255, 0.06);
+  --color-info: rgba(255, 255, 255, 0.7);
+  --color-info-soft: rgba(255, 255, 255, 0.06);
+
+  --shadow-card: 0 16px 50px rgba(0, 0, 0, 0.28);
+  --shadow-lift: 0 20px 60px rgba(0, 0, 0, 0.35);
+  --radius-card: 0.5rem;
+  --radius-control: 0.5rem;
+}
+
+:root {
+  --bg: #08090a;
+  --bg-2: #0d0e10;
+  --bg-3: #121316;
+  --bg-4: #17181b;
+
+  /* Glass fills — translucent enough to reveal environment */
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-strong: rgba(255, 255, 255, 0.065);
+  --surface-elevated: rgba(255, 255, 255, 0.085);
+  --overlay: rgba(18, 18, 21, 0.78);
+
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --text: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.68);
+  --text-muted: rgba(255, 255, 255, 0.42);
+
+  --radius: 8px;
+  --blur: 24px;
+  --blur-elevated: 30px;
+  --blur-overlay: 36px;
+  --blur-nav: 28px;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+    color-scheme: dark;
+    background: #08090a;
+    min-height: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--text);
+    /* Transparent — environment layers paint the world */
+    background: transparent;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+
+  /*
+    ENVIRONMENT LAYERS (fixed, full viewport)
+    L1 graphite base + spatial variation
+    L2 ambient light
+    L3 vignette
+    → then grain on #root::after / .playr-grain
+  */
+  body::before {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background:
+      /* Ambient light — grayscale only */
+      radial-gradient(
+        circle at 15% 10%,
+        rgba(255, 255, 255, 0.055),
+        transparent 38%
+      ),
+      radial-gradient(
+        circle at 85% 85%,
+        rgba(255, 255, 255, 0.035),
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 50% 40%,
+        rgba(255, 255, 255, 0.018),
+        transparent 55%
+      ),
+      /* Soft vignette */
+      radial-gradient(
+        ellipse 90% 80% at 50% 45%,
+        transparent 40%,
+        rgba(0, 0, 0, 0.45) 100%
+      ),
+      /* Spatial graphite (not flat) */
+      linear-gradient(
+        165deg,
+        #0d0e10 0%,
+        #08090a 38%,
+        #121316 72%,
+        #08090a 100%
+      );
+  }
+
+  /* Fine film grain — tuned for ~7–10% perceived presence */
+  body::after {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    opacity: 0.085;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.65 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 220px 220px;
+  }
+
+  #root {
+    min-height: 100dvh;
+    position: relative;
+    z-index: 2;
+    background: transparent;
+  }
+
+  /* Secondary denser grain pass for organic presence (still subtle) */
+  #root::before {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.045;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n2'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n2)' opacity='0.9'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 140px 140px;
+  }
+
+  #root::after {
+    content: none;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+    margin: 0;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  p {
+    margin: 0;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.7);
+    outline-offset: 2px;
+  }
+
+  ::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  /* Legacy: text-black → white on dark surfaces (headings, labels) */
+  .text-black {
+    color: var(--text);
+  }
+  .hover\:text-black:hover {
+    color: var(--text);
+  }
+
+  /* White CTAs must stay black — do not inherit the remap above */
+  .text-cta,
+  button.bg-white,
+  .bg-white.text-black,
+  a.bg-white {
+    color: #08090a !important;
+  }
+  .bg-gray-50 {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+  }
+  .border-black {
+    border-color: var(--border-strong) !important;
+  }
+  .hover\:border-black:hover {
+    border-color: var(--border-strong) !important;
+  }
+  .hover\:bg-gray-50:hover {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+  }
+  .active\:bg-gray-50:active {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  /* Kill accidental opaque page fills that hide the environment */
+  .bg-surface {
+    background-color: transparent !important;
+  }
+}
+
+@layer components {
+  /*
+    GLASS HIERARCHY
+    L1 .glass — interactive cards / sections
+    L2 .glass-elevated — featured / important
+    L3 .glass-overlay — sheets / modals
+    L4 .glass-nav — floating chrome
+  */
+
+  .glass {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius);
+    box-shadow:
+      0 16px 50px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(var(--blur)) saturate(125%);
+    -webkit-backdrop-filter: blur(var(--blur)) saturate(125%);
+    isolation: isolate;
+  }
+
+  /* Soft top wash without covering content (mask via mix-blend) */
+  .glass::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      transparent 32%
+    );
+    mix-blend-mode: soft-light;
+    opacity: 0.7;
+  }
+
+  .glass-elevated {
+    position: relative;
+    background: var(--surface-elevated);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.075);
+    backdrop-filter: blur(var(--blur-elevated)) saturate(130%);
+    -webkit-backdrop-filter: blur(var(--blur-elevated)) saturate(130%);
+    isolation: isolate;
+  }
+
+  .glass-elevated::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.07) 0%,
+      transparent 38%
+    );
+    mix-blend-mode: soft-light;
+    opacity: 0.75;
+  }
+
+  .glass-overlay {
+    position: relative;
+    background: var(--overlay);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: var(--radius);
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(var(--blur-overlay)) saturate(135%);
+    -webkit-backdrop-filter: blur(var(--blur-overlay)) saturate(135%);
+  }
+
+  .glass-nav {
+    background: rgba(18, 18, 21, 0.68);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(var(--blur-nav)) saturate(130%);
+    -webkit-backdrop-filter: blur(var(--blur-nav)) saturate(130%);
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.4);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass,
+    .glass-elevated {
+      background: rgba(18, 18, 21, 0.92);
+    }
+    .glass-overlay,
+    .glass-nav {
+      background: rgba(18, 18, 21, 0.96);
+    }
+  }
+
+  .glass-input {
+    width: 100%;
+    min-height: 3rem;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text);
+    padding: 0 1rem;
+    outline: none;
+    transition: border-color 0.2s ease, background 0.2s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glass-input:focus {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.055);
+  }
+
+  .panel {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius);
+    box-shadow:
+      0 16px 50px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(var(--blur)) saturate(125%);
+    -webkit-backdrop-filter: blur(var(--blur)) saturate(125%);
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .display-xl {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    color: var(--text);
+  }
+
+  .display-lg {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text);
+  }
+
+  .map-frame {
+    overflow: hidden;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(12, 12, 15, 0.55);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 16px 48px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    filter: grayscale(0.4) brightness(0.68) contrast(1.08);
+  }
+
+  /* Sticky headers — translucent glass, not opaque graphite */
+  .chrome-header {
+    background: rgba(8, 9, 10, 0.45);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px) saturate(125%);
+    -webkit-backdrop-filter: blur(20px) saturate(125%);
+  }
+
+  .chrome-sidebar {
+    background: rgba(18, 18, 21, 0.55);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(28px) saturate(130%);
+    -webkit-backdrop-filter: blur(28px) saturate(130%);
+  }
+}
+
+@layer utilities {
+  .page-pad {
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .page-pad {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  .safe-bottom {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 1024px) {
+    .safe-bottom {
+      padding-bottom: 2rem;
+    }
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .label-caps {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .rule {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.22s ease-out both;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out both;
+  }
+
+  .app-shell {
+    position: relative;
+    z-index: 2;
+    background: transparent;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

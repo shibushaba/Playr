@@ -1,0 +1,184 @@
+import { ensureProfileAfterSignup, getMyProfile } from '@/services/profiles'
+import { supabase } from '@/lib/supabase'
+import type { Tables } from '@/types/database'
+import type { Session, User } from '@supabase/supabase-js'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
+
+interface AuthContextValue {
+  session: Session | null
+  user: User | null
+  profile: Tables<'profiles'> | null
+  loading: boolean
+  signIn: (email: string, password: string) => Promise<void>
+  signUp: (input: {
+    email: string
+    password: string
+    displayName: string
+  }) => Promise<void>
+  signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null)
+  const [profile, setProfile] = useState<Tables<'profiles'> | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const refreshProfile = useCallback(async () => {
+    try {
+      const p = await getMyProfile()
+      setProfile(p)
+    } catch {
+      setProfile(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!mounted) return
+        setSession(data.session)
+        setLoading(false)
+      })
+      .catch(() => {
+        if (!mounted) return
+        setSession(null)
+        setLoading(false)
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, next) => {
+      setSession(next)
+      setLoading(false)
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (session?.user) {
+      void refreshProfile()
+    } else {
+      setProfile(null)
+    }
+  }, [session?.user?.id, refreshProfile])
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      const msg = (error.message || '').toLowerCase()
+      if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
+        throw new Error('Invalid email or password.')
+      }
+      if (msg.includes('email not confirmed') || msg.includes('not confirmed')) {
+        throw new Error(
+          'Confirm your email before signing in, or ask the host to enable auto-confirm for this pilot.',
+        )
+      }
+      if (msg.includes('rate limit') || msg.includes('too many')) {
+        throw new Error('Too many attempts. Wait a minute and try again.')
+      }
+      throw new Error("Couldn't sign in. Try again.")
+    }
+  }, [])
+
+  const signUp = useCallback(
+    async (input: { email: string; password: string; displayName: string }) => {
+      const { data, error } = await supabase.auth.signUp({
+        email: input.email,
+        password: input.password,
+        options: {
+          data: {
+            display_name: input.displayName,
+          },
+        },
+      })
+      if (error) {
+        const msg = (error.message || '').toLowerCase()
+        const code = (error as { code?: string }).code?.toLowerCase() ?? ''
+        if (
+          msg.includes('already registered') ||
+          msg.includes('already been registered') ||
+          code.includes('user_already_exists')
+        ) {
+          throw new Error('An account with that email already exists. Sign in instead.')
+        }
+        if (msg.includes('rate limit') || code.includes('over_email_send_rate_limit')) {
+          throw new Error(
+            'Sign-up is briefly rate-limited. Wait a minute, then try again (or sign in if you already registered).',
+          )
+        }
+        if (msg.includes('password') && (msg.includes('least') || msg.includes('weak') || msg.includes('short'))) {
+          throw new Error('Use a stronger password (at least 6 characters).')
+        }
+        if (
+          msg.includes('unable to validate email') ||
+          msg.includes('invalid email') ||
+          code.includes('email_address_invalid')
+        ) {
+          throw new Error('Enter a valid email address.')
+        }
+        throw new Error("Couldn't create account. Try again.")
+      }
+      // Email-confirm projects return a user with no session until confirmed.
+      if (data.user && !data.session) {
+        throw new Error(
+          'Almost done — check your email to confirm your account, then sign in.',
+        )
+      }
+      if (data.user) {
+        try {
+          await ensureProfileAfterSignup({ displayName: input.displayName })
+        } catch {
+          // Profile trigger usually creates the row; never block signup on this.
+        }
+      }
+    },
+    [],
+  )
+
+  const signOut = useCallback(async () => {
+    const { error } = await supabase.auth.signOut()
+    if (error) throw new Error("Couldn't sign out. Try again.")
+    setProfile(null)
+  }, [])
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      session,
+      user: session?.user ?? null,
+      profile,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      refreshProfile,
+    }),
+    [session, profile, loading, signIn, signUp, signOut, refreshProfile],
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
+}

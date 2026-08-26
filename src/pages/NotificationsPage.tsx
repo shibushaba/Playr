@@ -1,0 +1,152 @@
+import { Header } from '@/components/layout/Header'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { PrimaryButton } from '@/components/ui/PrimaryButton'
+import { SecondaryButton } from '@/components/ui/SecondaryButton'
+import { useAuth } from '@/contexts/AuthContext'
+import { toUserMessage } from '@/lib/errors'
+import {
+  listNotifications,
+  markAllRead,
+  markRead,
+} from '@/services/notifications'
+import type { NotificationItem } from '@/types/domain'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+
+export function NotificationsPage() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [items, setItems] = useState<NotificationItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function reload() {
+    const list = await listNotifications(30)
+    setItems(list)
+  }
+
+  useEffect(() => {
+    if (!user) {
+      setLoading(false)
+      return
+    }
+    void reload()
+      .catch((e) => setError(toUserMessage(e, "Couldn't load notifications.")))
+      .finally(() => setLoading(false))
+  }, [user])
+
+  if (!user) {
+    return (
+      <div>
+        <Header title="Notifications" backTo="/home" />
+        <div className="page-pad py-6">
+          <PrimaryButton fullWidth onClick={() => navigate('/auth?next=/notifications')}>
+            Sign in
+          </PrimaryButton>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <Header
+        title="Notifications"
+        backTo="/home"
+        right={
+          items.some((n) => !n.readAt) ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white disabled:opacity-40"
+              onClick={() => {
+                setBusy(true)
+                void markAllRead()
+                  .then(() => {
+                    setItems((prev) =>
+                      prev.map((item) =>
+                        item.readAt
+                          ? item
+                          : { ...item, readAt: new Date().toISOString() },
+                      ),
+                    )
+                  })
+                  .catch((e) => setError(toUserMessage(e, "Couldn't update.")))
+                  .finally(() => setBusy(false))
+              }}
+            >
+              Mark all read
+            </button>
+          ) : null
+        }
+      />
+      <div className="page-pad space-y-0 py-2">
+        {loading ? (
+          <div className="glass my-4 h-32 animate-pulse" />
+        ) : error ? (
+          <div className="py-4">
+            <EmptyState title="Couldn't load" description={error} />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="py-4">
+            <EmptyState
+              title="You're all caught up"
+              description="No notifications right now."
+            />
+          </div>
+        ) : (
+          <ul className="glass divide-y divide-white/10">
+            {items.map((n) => (
+              <li key={n.id}>
+                <button
+                  type="button"
+                  className="flex w-full gap-3 px-4 py-4 text-left transition hover:bg-white/[0.04]"
+                  onClick={() => {
+                    if (!n.readAt) {
+                      setItems((prev) =>
+                        prev.map((item) =>
+                          item.id === n.id
+                            ? { ...item, readAt: new Date().toISOString() }
+                            : item,
+                        ),
+                      )
+                      void markRead([n.id]).catch(() => undefined)
+                    }
+                    if (n.gameId) navigate(`/games/${n.gameId}`)
+                    else if (n.groupId) navigate(`/groups/${n.groupId}`)
+                  }}
+                >
+                  <span className="mt-1.5 flex w-3 shrink-0 justify-center">
+                    {!n.readAt ? (
+                      <span
+                        className="h-2 w-2 rounded-full bg-white"
+                        aria-label="Unread"
+                      />
+                    ) : null}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-medium text-white">{n.title}</p>
+                    {n.body ? (
+                      <p className="mt-1 text-[13px] leading-relaxed text-white/45">
+                        {n.body}
+                      </p>
+                    ) : null}
+                    <p className="mt-2 text-[11px] uppercase tracking-[0.06em] text-white/45">
+                      {new Date(n.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="pt-6">
+          <Link to="/home">
+            <SecondaryButton fullWidth>Back to Home</SecondaryButton>
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
