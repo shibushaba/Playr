@@ -1,4 +1,5 @@
 import { Header } from '@/components/layout/Header'
+import { ProfileCompletionGate } from '@/components/trust/ProfileCompletionGate'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { VenueMapPicker } from '@/components/venue/VenueMapPicker'
@@ -6,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLocationDiscovery } from '@/contexts/LocationContext'
 import { formatDistanceMeters } from '@/lib/location'
 import { toUserMessage, AppError } from '@/lib/errors'
+import { normalizePhoneE164 } from '@/lib/phone'
 import type { PlaceSuggestion } from '@/lib/maps'
 import { listSports } from '@/services/sports'
 import {
@@ -14,6 +16,7 @@ import {
   type SimilarVenue,
 } from '@/services/venues'
 import type { SportRecord } from '@/types/domain'
+import { canJoinGame } from '@/lib/profileCompletion'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -21,7 +24,7 @@ export function AddVenuePage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const returnTo = params.get('returnTo')
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { refreshAreas } = useLocationDiscovery()
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
@@ -30,6 +33,7 @@ export function AddVenuePage() {
   const [place, setPlace] = useState<PlaceSuggestion | null>(null)
   const [sports, setSports] = useState<SportRecord[]>([])
   const [selectedSports, setSelectedSports] = useState<string[]>([])
+  const [phone, setPhone] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [similar, setSimilar] = useState<SimilarVenue[]>([])
@@ -89,6 +93,11 @@ export function AddVenuePage() {
       setError('Select at least one sport.')
       return
     }
+    const venuePhone = normalizePhoneE164(phone)
+    if (!venuePhone) {
+      setError('Enter a valid venue phone number.')
+      return
+    }
 
     setBusy(true)
     setError(null)
@@ -117,6 +126,7 @@ export function AddVenuePage() {
         latitude: place.latitude,
         longitude: place.longitude,
         mapUrl: place.mapUrl,
+        phone: venuePhone,
         forceCreate,
       })
       refreshAreas()
@@ -176,10 +186,14 @@ export function AddVenuePage() {
             </p>
           ) : null}
 
+          {!canJoinGame(profile, user) ? (
+            <ProfileCompletionGate requiredFor="venue" />
+          ) : null}
+
           <Field label="Venue name">
             <input
               required
-              className="input"
+              className="glass-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Arena Football Turf"
@@ -191,7 +205,7 @@ export function AddVenuePage() {
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Address">
               <input
-                className="input"
+                className="glass-input"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Street / landmark"
@@ -203,13 +217,31 @@ export function AddVenuePage() {
             <Field label="City / area">
               <input
                 required
-                className="input"
+                className="glass-input"
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
                 placeholder="e.g. Kozhikode"
               />
             </Field>
           </div>
+
+          <Field label="Venue phone (required)">
+            <div className="glass-input flex min-h-11 items-center gap-2 !px-3">
+              <span className="text-[14px] text-white/45">+91</span>
+              <input
+                required
+                className="w-full bg-transparent text-[14px] text-white outline-none placeholder:text-white/35"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                inputMode="numeric"
+                placeholder="9876543210"
+                autoComplete="tel"
+              />
+            </div>
+            <p className="mt-1.5 text-[12px] text-muted">
+              Business contact for hosts to confirm bookings. Not shown in public discovery.
+            </p>
+          </Field>
 
           <div>
             <p className="label-caps mb-3">Sports available</p>
@@ -273,9 +305,11 @@ export function AddVenuePage() {
             fullWidth
             disabled={
               busy ||
+              !canJoinGame(profile, user) ||
               !name.trim() ||
               !area.trim() ||
               !place ||
+              !phone.trim() ||
               selectedSports.length === 0
             }
           >
@@ -283,22 +317,6 @@ export function AddVenuePage() {
           </PrimaryButton>
         </form>
       </div>
-      <style>{`
-        .input {
-          width: 100%;
-          min-height: 3rem;
-          border-radius: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.045);
-          color: #fff;
-          padding: 0 1rem;
-          outline: none;
-        }
-        .input:focus {
-          border-color: rgba(255, 255, 255, 0.45);
-          background: rgba(255, 255, 255, 0.07);
-        }
-      `}</style>
     </div>
   )
 }

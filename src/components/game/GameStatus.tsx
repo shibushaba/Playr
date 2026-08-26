@@ -1,4 +1,8 @@
 import { cn, formatRelativeDeadline, statusLabel } from '@/lib/format'
+import {
+  deadlineToneClass,
+  getDeadlineUrgency,
+} from '@/lib/availability'
 import type { UiGameStatus } from '@/types/domain'
 import { useEffect, useState } from 'react'
 
@@ -12,21 +16,88 @@ interface Props {
   className?: string
 }
 
+function statusPanelClass(status: UiGameStatus): string {
+  switch (status) {
+    case 'confirmed':
+      return 'glass glass-status-success'
+    case 'full':
+      return 'glass glass-status-info'
+    case 'filling':
+      return 'glass glass-status-warning'
+    case 'in_progress':
+      return 'glass glass-status-live'
+    case 'cancelled':
+      return 'glass glass-status-danger'
+    default:
+      return 'glass'
+  }
+}
+
+function statusTitleClass(status: UiGameStatus): string {
+  switch (status) {
+    case 'confirmed':
+    case 'open':
+      return 'text-status-success'
+    case 'full':
+      return 'text-status-info'
+    case 'filling':
+      return 'text-status-warning'
+    case 'in_progress':
+      return 'text-status-live animate-live-pulse'
+    case 'cancelled':
+      return 'text-status-danger/80'
+    case 'completed':
+      return 'text-status-neutral'
+    default:
+      return 'text-white'
+  }
+}
+
 export function GameStatus({ game, className }: Props) {
+  const urgency = getDeadlineUrgency(game.confirmationDeadline)
+  const deadlineClass = deadlineToneClass(urgency)
+
   return (
-    <div className={cn('glass p-4', className)}>
+    <div className={cn(statusPanelClass(game.status), 'p-4', className)}>
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="label-caps">Game status</p>
-          <p className="mt-2 font-[family-name:var(--font-display)] text-[22px] font-semibold tracking-tight text-white">
-            {statusLabel(game.status)}
+          <p
+            className={cn(
+              'mt-2 font-[family-name:var(--font-display)] text-[22px] font-semibold tracking-tight',
+              statusTitleClass(game.status),
+            )}
+          >
+            {game.status === 'in_progress' ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="status-dot" aria-hidden />
+                Live
+              </span>
+            ) : game.status === 'confirmed' ? (
+              <span className="inline-flex items-center gap-2">
+                <span aria-hidden>✓</span>
+                Confirmed
+              </span>
+            ) : game.status === 'cancelled' ? (
+              <span className="inline-flex items-center gap-2">
+                <span aria-hidden>×</span>
+                Cancelled
+              </span>
+            ) : game.status === 'completed' ? (
+              <span className="inline-flex items-center gap-2">
+                <span aria-hidden>✓</span>
+                Completed
+              </span>
+            ) : (
+              statusLabel(game.status)
+            )}
           </p>
         </div>
         <div className="text-right">
           <p className="text-[14px] font-semibold tabular-nums text-white">
             {game.confirmedCount}/{game.minPlayers} min
           </p>
-          <p className="mt-0.5 text-[12px] text-white/45">
+          <p className={cn('mt-0.5 text-[12px]', deadlineClass)}>
             {formatRelativeDeadline(game.confirmationDeadline, true)}
           </p>
         </div>
@@ -61,6 +132,8 @@ export function Countdown({
 }: CountdownProps) {
   const deadline = new Date(deadlineAt)
   const [parts, setParts] = useState(() => partsUntil(deadline))
+  const urgency = getDeadlineUrgency(deadlineAt)
+  const urgencyClass = deadlineToneClass(urgency)
 
   useEffect(() => {
     const id = window.setInterval(() => setParts(partsUntil(deadline)), 1000)
@@ -69,15 +142,15 @@ export function Countdown({
 
   return (
     <div className={cn('glass-elevated px-4 py-4 text-white', className)}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/40">
+      <p className={cn('text-[11px] font-semibold uppercase tracking-[0.1em]', urgencyClass)}>
         {label}
       </p>
       {parts.done ? (
-        <p className="mt-2 font-[family-name:var(--font-display)] text-[22px] font-semibold tracking-tight">
+        <p className="mt-2 font-[family-name:var(--font-display)] text-[22px] font-semibold tracking-tight text-status-warning">
           Deadline passed
         </p>
       ) : (
-        <div className="mt-3 flex items-end gap-3">
+        <div className={cn('mt-3 flex items-end gap-3', urgency !== 'neutral' && urgencyClass)}>
           <TimeBlock value={parts.h} unit="hrs" />
           <span className="pb-2 text-[22px] text-white/35">:</span>
           <TimeBlock value={parts.m} unit="min" />

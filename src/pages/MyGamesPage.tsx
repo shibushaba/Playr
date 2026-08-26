@@ -62,7 +62,8 @@ export function MyGamesPage() {
       (g) =>
         new Date(g.startsAt).getTime() >= now &&
         g.dbStatus !== 'cancelled' &&
-        g.dbStatus !== 'completed',
+        g.dbStatus !== 'completed' &&
+        g.dbStatus !== 'draft',
     )
   }, [games, tab, user])
 

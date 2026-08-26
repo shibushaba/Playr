@@ -11,7 +11,7 @@ export interface PlaceSuggestion {
   latitude: number
   longitude: number
   mapUrl: string
-  provider: 'google' | 'nominatim' | 'photon' | 'overpass'
+  provider: 'google' | 'nominatim' | 'photon' | 'overpass' | 'manual'
   distanceMeters?: number
   distanceLabel?: string
 }
@@ -41,6 +41,42 @@ export function mapsUrlFromCoords(latitude: number, longitude: number): string {
   return `https://www.google.com/maps?q=${latitude},${longitude}`
 }
 
+/** Turn-by-turn directions in Google Maps (works on mobile deep link). */
+export function directionsUrlFromCoords(
+  latitude: number,
+  longitude: number,
+): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
+}
+
+export function resolveVenueDirectionsUrl(venue: {
+  latitude: number | null
+  longitude: number | null
+  mapUrl?: string | null
+}): string | null {
+  if (venue.latitude != null && venue.longitude != null) {
+    return directionsUrlFromCoords(venue.latitude, venue.longitude)
+  }
+  if (venue.mapUrl && isSafeHttpUrl(venue.mapUrl)) {
+    return venue.mapUrl.trim()
+  }
+  return null
+}
+
+export function resolveVenueMapViewUrl(venue: {
+  latitude: number | null
+  longitude: number | null
+  mapUrl?: string | null
+}): string | null {
+  if (venue.mapUrl && isSafeHttpUrl(venue.mapUrl)) {
+    return venue.mapUrl.trim()
+  }
+  if (venue.latitude != null && venue.longitude != null) {
+    return mapsUrlFromCoords(venue.latitude, venue.longitude)
+  }
+  return null
+}
+
 export function isSafeHttpUrl(url: string): boolean {
   try {
     const u = new URL(url.trim())
@@ -48,6 +84,155 @@ export function isSafeHttpUrl(url: string): boolean {
   } catch {
     return false
   }
+}
+
+export interface ParsedMapUrl {
+  latitude: number
+  longitude: number
+  mapUrl: string
+  name: string | null
+}
+
+function validCoords(latitude: number, longitude: number): boolean {
+  return (
+    !Number.isNaN(latitude) &&
+    !Number.isNaN(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180
+  )
+}
+
+function parseCoordPair(value: string): { lat: number; lng: number } | null {
+  const match = value.trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/)
+  if (!match) return null
+  const lat = Number(match[1])
+  const lng = Number(match[2])
+  if (!validCoords(lat, lng)) return null
+  return { lat, lng }
+}
+
+function googlePlaceNameFromPath(pathname: string): string | null {
+  const match = pathname.match(/\/place\/([^/]+)/)
+  if (!match) return null
+  return decodeURIComponent(match[1].replace(/\+/g, ' ')).trim() || null
+}
+
+/** Extract coordinates (+ optional place name) from a shared map link. */
+export function parseMapUrl(raw: string): ParsedMapUrl | null {
+  const trimmed = raw.trim()
+  if (!isSafeHttpUrl(trimmed)) return null
+
+  try {
+    const url = new URL(trimmed)
+    const host = url.hostname.replace(/^www\./, '')
+    const haystack = `${url.pathname}${url.search}${url.hash}`
+
+    const precise = trimmed.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)
+    if (precise) {
+      const latitude = Number(precise[1])
+      const longitude = Number(precise[2])
+      if (validCoords(latitude, longitude)) {
+        return {
+          latitude,
+          longitude,
+          mapUrl: trimmed,
+          name: googlePlaceNameFromPath(url.pathname),
+        }
+      }
+    }
+
+    for (const key of ['q', 'query', 'll', 'center']) {
+      const value = url.searchParams.get(key)
+      if (!value) continue
+      const coords = parseCoordPair(value)
+      if (coords) {
+        return {
+          latitude: coords.lat,
+          longitude: coords.lng,
+          mapUrl: trimmed,
+          name: googlePlaceNameFromPath(url.pathname),
+        }
+      }
+    }
+
+    const atMatch = haystack.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
+    if (atMatch) {
+      const latitude = Number(atMatch[1])
+      const longitude = Number(atMatch[2])
+      if (validCoords(latitude, longitude)) {
+        return {
+          latitude,
+          longitude,
+          mapUrl: trimmed,
+          name: googlePlaceNameFromPath(url.pathname),
+        }
+      }
+    }
+
+    if (host.includes('openstreetmap.org')) {
+      const lat = url.searchParams.get('mlat')
+      const lon = url.searchParams.get('mlon')
+      if (lat && lon) {
+        const latitude = Number(lat)
+        const longitude = Number(lon)
+        if (validCoords(latitude, longitude)) {
+          return { latitude, longitude, mapUrl: trimmed, name: null }
+        }
+      }
+    }
+
+    if (host.includes('apple.com')) {
+      const ll = url.searchParams.get('ll')
+      if (ll) {
+        const coords = parseCoordPair(ll)
+        if (coords) {
+          return {
+            latitude: coords.lat,
+            longitude: coords.lng,
+            mapUrl: trimmed,
+            name: url.searchParams.get('q'),
+          }
+        }
+      }
+    }
+
+    return null
+  } catch {
+    return null
+  }
+}
+
+export function placeFromMapUrl(
+  raw: string,
+  fallbackName?: string,
+): PlaceSuggestion | null {
+  const parsed = parseMapUrl(raw)
+  if (!parsed) return null
+
+  const name =
+    parsed.name?.trim() ||
+    fallbackName?.trim() ||
+    'Pinned location'
+
+  return {
+    id: `manual-${parsed.latitude.toFixed(5)},${parsed.longitude.toFixed(5)}`,
+    label: name,
+    name,
+    address: null,
+    city: null,
+    state: null,
+    country: null,
+    latitude: parsed.latitude,
+    longitude: parsed.longitude,
+    mapUrl: parsed.mapUrl,
+    provider: 'manual',
+  }
+}
+
+export function mapUrlParseHint(): string {
+  return 'Paste a Google Maps share link that includes the pin (Share → Copy link). Short links may not work — open the place first, then copy the full URL from your browser.'
 }
 
 function cityFromAddress(parts: Record<string, string | undefined>): string | null {

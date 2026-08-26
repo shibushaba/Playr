@@ -5,7 +5,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { useLocationDiscovery } from '@/contexts/LocationContext'
 import { toUserMessage } from '@/lib/errors'
-import { formatDistanceMeters } from '@/lib/location'
+import { formatDistanceMeters, haversineMeters } from '@/lib/location'
 import { isSafeHttpUrl, osmEmbedUrl } from '@/lib/maps'
 import { getNearbyGames } from '@/services/discovery'
 import { getVenue } from '@/services/venues'
@@ -201,20 +201,4 @@ export function VenueDetailsPage() {
       </div>
     </div>
   )
-}
-
-function haversineMeters(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
-): number {
-  const R = 6371000
-  const toRad = (d: number) => (d * Math.PI) / 180
-  const dLat = toRad(lat2 - lat1)
-  const dLon = toRad(lon2 - lon1)
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(a))
 }

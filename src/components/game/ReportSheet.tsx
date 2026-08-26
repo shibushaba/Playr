@@ -99,7 +99,7 @@ export function ReportSheet({
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
         type="button"
-        className="absolute inset-0 bg-black/60 animate-fade-in backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 animate-fade-in sheet-scrim"
         aria-label="Close"
         onClick={onClose}
       />

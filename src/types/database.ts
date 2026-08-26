@@ -57,6 +57,8 @@ export interface Database {
           display_name: string | null
           username: string | null
           phone: string | null
+          phone_verified_at: string | null
+          email_verified_at: string | null
           avatar_url: string | null
           bio: string | null
           home_latitude: number | null
@@ -70,6 +72,8 @@ export interface Database {
           display_name?: string | null
           username?: string | null
           phone?: string | null
+          phone_verified_at?: string | null
+          email_verified_at?: string | null
           avatar_url?: string | null
           bio?: string | null
           home_latitude?: number | null
@@ -83,6 +87,8 @@ export interface Database {
           display_name?: string | null
           username?: string | null
           phone?: string | null
+          phone_verified_at?: string | null
+          email_verified_at?: string | null
           avatar_url?: string | null
           bio?: string | null
           home_latitude?: number | null
@@ -301,6 +307,8 @@ export interface Database {
           visibility: GameVisibility
           status: DbGameStatus
           venue_confirmation: VenueConfirmation
+          venue_booking_confirmed_at: string | null
+          venue_booking_confirmed_by: string | null
           confirmation_deadline: string
           member_priority_until: string | null
           created_at: string
@@ -323,6 +331,8 @@ export interface Database {
           visibility?: GameVisibility
           status?: DbGameStatus
           venue_confirmation?: VenueConfirmation
+          venue_booking_confirmed_at?: string | null
+          venue_booking_confirmed_by?: string | null
           confirmation_deadline?: string
           member_priority_until?: string | null
           created_at?: string
@@ -345,6 +355,8 @@ export interface Database {
           visibility?: GameVisibility
           status?: DbGameStatus
           venue_confirmation?: VenueConfirmation
+          venue_booking_confirmed_at?: string | null
+          venue_booking_confirmed_by?: string | null
           confirmation_deadline?: string
           member_priority_until?: string | null
           created_at?: string
@@ -925,6 +937,38 @@ export interface Database {
       cancel_game_participation: {
         Args: { p_game_id: string }
         Returns: Database['public']['Tables']['game_players']['Row']
+      }
+      publish_game: {
+        Args: { p_game_id: string }
+        Returns: Database['public']['Tables']['games']['Row']
+      }
+      confirm_game_venue_booking: {
+        Args: { p_game_id: string }
+        Returns: Database['public']['Tables']['games']['Row']
+      }
+      get_venue_contact_phone: {
+        Args: { p_venue_id: string }
+        Returns: string | null
+      }
+      request_phone_verification: {
+        Args: { p_phone: string }
+        Returns: Json
+      }
+      confirm_phone_verification: {
+        Args: { p_code: string; p_challenge_id?: string }
+        Returns: Database['public']['Tables']['profiles']['Row']
+      }
+      update_my_profile: {
+        Args: {
+          p_display_name?: string | null
+          p_username?: string | null
+          p_bio?: string | null
+          p_phone?: string | null
+          p_avatar_url?: string | null
+          p_clear_phone?: boolean
+          p_clear_avatar?: boolean
+        }
+        Returns: Database['public']['Tables']['profiles']['Row']
       }
       get_game_contact_phone: {
         Args: { p_game_id: string; p_target_user_id: string }

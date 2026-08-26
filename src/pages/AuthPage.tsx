@@ -46,7 +46,11 @@ export function AuthPage() {
           displayName: name.trim(),
         })
       }
-      navigate(nextPath ?? '/home')
+      navigate(
+        mode === 'signup'
+          ? `/welcome?next=${encodeURIComponent(nextPath ?? '/home')}`
+          : (nextPath ?? '/home'),
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't continue. Try again.")
     } finally {
@@ -128,8 +132,8 @@ export function AuthPage() {
         </form>
 
         <p className="mt-10 text-center text-[12px] leading-relaxed text-white/45">
-          By continuing you agree that hosts may see your phone if you join a
-          game, and that PLAYR does not process payments.{' '}
+          By continuing you agree that hosts may see your phone if you add one
+          and join a game, and that PLAYR does not process payments.{' '}
           <Link to="/home" className="font-semibold text-white underline-offset-2 hover:underline">
             Browse games
           </Link>

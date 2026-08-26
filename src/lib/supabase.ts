@@ -8,10 +8,14 @@ const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as
 
 export const isSupabaseConfigured = Boolean(url && publishableKey)
 
-if (!isSupabaseConfigured && import.meta.env.DEV) {
-  console.error(
-    '[PLAYR] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY. Copy .env.example to .env.local and add your Supabase project credentials.',
-  )
+if (!isSupabaseConfigured) {
+  const msg =
+    '[PLAYR] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY. Set them in .env.local (dev) or Vercel Environment Variables (production).'
+  if (import.meta.env.DEV) {
+    console.error(msg)
+  } else {
+    console.warn(msg)
+  }
 }
 
 /**

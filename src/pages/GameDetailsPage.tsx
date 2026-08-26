@@ -1,9 +1,11 @@
 import { CallButton } from '@/components/game/CallButton'
 import { Countdown, GameStatus } from '@/components/game/GameStatus'
 import { GameChatPanel } from '@/components/game/GameChatPanel'
+import { GameAvailability, ParticipantStatus } from '@/components/game/GameAvailability'
 import { PlayerCount } from '@/components/game/PlayerCount'
 import { ReportSheet } from '@/components/game/ReportSheet'
 import { StatusBadge } from '@/components/game/StatusBadge'
+import { VenueReachPanel } from '@/components/game/VenueReachPanel'
 import { Header } from '@/components/layout/Header'
 import { PlayerAvatar } from '@/components/player/PlayerAvatar'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -11,6 +13,8 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { useAuth } from '@/contexts/AuthContext'
 import { toUserMessage } from '@/lib/errors'
+import { resolveVenueDirectionsUrl } from '@/lib/maps'
+import { formatPhoneDisplay } from '@/lib/phone'
 import {
   formatDateTime,
   formatDay,
@@ -33,11 +37,17 @@ import {
 } from '@/services/checkin'
 import { getContactPhone, getGameDetail } from '@/services/games'
 import { createGameInvite } from '@/services/invites'
+import {
+  confirmGameVenueBooking,
+  getVenueContactPhone,
+  publishGame,
+} from '@/services/verification'
 import type { GameDetail, GameParticipant } from '@/types/domain'
 import {
   Flag,
   Info,
   Lock,
+  MapPin,
   MessageCircle,
   Shield,
   Users,
@@ -45,7 +55,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
-type Tab = 'players' | 'chat'
+type Tab = 'players' | 'chat' | 'location'
 
 export function GameDetailsPage() {
   const { id } = useParams()
@@ -59,6 +69,9 @@ export function GameDetailsPage() {
   const [windowInfo, setWindowInfo] = useState<CheckInWindow | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [publishBusy, setPublishBusy] = useState(false)
+  const [bookingCheckbox, setBookingCheckbox] = useState(false)
+  const [venuePhone, setVenuePhone] = useState<string | null>(null)
   const [playerPhones, setPlayerPhones] = useState<Record<string, string>>({})
   const [reportOpen, setReportOpen] = useState(false)
   const [reportTarget, setReportTarget] = useState<{
@@ -67,7 +80,7 @@ export function GameDetailsPage() {
     messageId?: string
   } | null>(null)
   const [confirmNoShow, setConfirmNoShow] = useState<string | null>(null)
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null)
+  const [inviteCopied, setInviteCopied] = useState(false)
 
   const reload = useCallback(async () => {
     if (!id) return
@@ -107,8 +120,44 @@ export function GameDetailsPage() {
     }
   }, [id, reload])
 
+  useEffect(() => {
+    if (!game || !user) return
+    const host =
+      game.hostId === user.id ||
+      game.myParticipation?.role === 'host' ||
+      game.myParticipation?.role === 'co_host'
+    if (!host || game.dbStatus !== 'draft' || !game.venue?.id) return
+    let cancelled = false
+    void getVenueContactPhone(game.venue.id).then((phone) => {
+      if (!cancelled) setVenuePhone(phone)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [game, user])
+
+  useEffect(() => {
+    if (!id || !game) return
+    if (!['open', 'confirmed', 'live'].includes(game.dbStatus)) return
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible') void reload()
+    }
+
+    document.addEventListener('visibilitychange', refreshIfVisible)
+    const interval = window.setInterval(refreshIfVisible, 30_000)
+    return () => {
+      document.removeEventListener('visibilitychange', refreshIfVisible)
+      window.clearInterval(interval)
+    }
+  }, [id, game?.dbStatus, reload])
+
   const isHost = Boolean(
-    user && game && (game.hostId === user.id || game.myParticipation?.role === 'co_host'),
+    user &&
+      game &&
+      (game.hostId === user.id ||
+        game.myParticipation?.role === 'host' ||
+        game.myParticipation?.role === 'co_host'),
   )
 
   useEffect(() => {
@@ -171,16 +220,35 @@ export function GameDetailsPage() {
   }
 
   const myStatus = game.myParticipation?.status
-  const isReserved = myStatus === 'reserved'
+  const myRosterEntry = user
+    ? game.players.find((p) => p.userId === user.id)
+    : undefined
+  const isReserved = myStatus === 'reserved' || myRosterEntry?.status === 'reserved'
+  const isWaitlisted =
+    myStatus === 'waitlisted' || myRosterEntry?.status === 'waitlisted'
   const isConfirmedPlayer =
-    myStatus === 'confirmed' || myStatus === 'attended' || Boolean(isHost)
-  const isWaitlisted = myStatus === 'waitlisted'
+    myStatus === 'confirmed' ||
+    myStatus === 'attended' ||
+    myRosterEntry?.status === 'confirmed' ||
+    myRosterEntry?.status === 'attended' ||
+    Boolean(isHost)
   const isFull = game.confirmedCount >= game.maxPlayers
   const deadlinePassed = new Date(game.confirmationDeadline).getTime() <= Date.now()
   const isCancelled = game.dbStatus === 'cancelled'
   const isGameConfirmed = game.dbStatus === 'confirmed'
   const isLive = game.dbStatus === 'live'
   const isCompleted = game.dbStatus === 'completed'
+  const isDraft = game.dbStatus === 'draft'
+  const isParticipant =
+    isHost || isConfirmedPlayer || isReserved || isWaitlisted
+  const hasVenueLocation = Boolean(
+    game.venue &&
+      ((game.venue.latitude != null && game.venue.longitude != null) ||
+        resolveVenueDirectionsUrl(game.venue)),
+  )
+  const venueDirectionsUrl = game.venue
+    ? resolveVenueDirectionsUrl(game.venue)
+    : null
   const rosterLocked =
     isGameConfirmed ||
     isCancelled ||
@@ -297,17 +365,45 @@ export function GameDetailsPage() {
   }
 
   function checkInHint(): string | null {
-    if (!canSelfCheckIn) return null
+    if (iCheckedIn) return "✓ You're checked in"
+    if (!canSelfCheckIn && !windowInfo) return null
+    if (windowInfo?.tooEarly && windowInfo.opensAt) {
+      return `Check-in opens at ${formatTime(windowInfo.opensAt)}.`
+    }
     if (windowInfo?.tooEarly) return 'Check-in opens 30 minutes before the game.'
     if (windowInfo?.tooLate && !isHost) return 'Check-in window has closed.'
     if (windowInfo && !windowInfo.playerWindowOpen) {
+      if (windowInfo.opensAt) {
+        return `Check-in opens at ${formatTime(windowInfo.opensAt)}.`
+      }
       return 'Check-in opens 30 minutes before the game.'
     }
     return null
   }
 
+  async function publishDraftGame() {
+    if (!game) return
+    if (!game.venueBookingConfirmedAt && !bookingCheckbox) {
+      setActionError('Confirm that the venue slot is booked before publishing.')
+      return
+    }
+    setPublishBusy(true)
+    setActionError(null)
+    try {
+      if (!game.venueBookingConfirmedAt) {
+        await confirmGameVenueBooking(game.id)
+      }
+      await publishGame(game.id)
+      await reload()
+    } catch (e) {
+      setActionError(toUserMessage(e, "Couldn't publish game."))
+    } finally {
+      setPublishBusy(false)
+    }
+  }
+
   return (
-    <div className="pb-28">
+    <div className="lg:pb-24">
       <Header
         title="Game details"
         backTo="/home"
@@ -356,8 +452,10 @@ export function GameDetailsPage() {
 
         {/* Status banners — monochrome borders */}
         {isCancelled ? (
-          <div className="glass-elevated p-4">
-            <p className="label-caps">Cancelled</p>
+          <div className="glass-elevated glass-status-danger p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-status-danger/80">
+              × Cancelled
+            </p>
             <p className="mt-2 text-[14px] leading-relaxed text-white/45">
               This game was cancelled because the minimum number of players
               wasn&apos;t reached.
@@ -365,9 +463,69 @@ export function GameDetailsPage() {
           </div>
         ) : null}
 
-        {isGameConfirmed ? (
+        {isDraft && isHost ? (
+          <section className="glass-elevated space-y-4 p-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-status-warning">
+                Draft — publish required
+              </p>
+              <p className="mt-2 text-[14px] leading-relaxed text-white/45">
+                Confirm the venue slot for this occurrence, then publish to open
+                it for players.
+              </p>
+            </div>
+            {venuePhone ? (
+              <div className="glass p-3">
+                <p className="label-caps">Venue contact</p>
+                <p className="mt-1 text-[14px] text-white">
+                  {formatPhoneDisplay(venuePhone)}
+                </p>
+                <CallButton phone={venuePhone} label="Call venue" className="mt-3" />
+              </div>
+            ) : null}
+            {!game.venueBookingConfirmedAt ? (
+              <label className="glass flex cursor-pointer items-start gap-3 p-4">
+                <input
+                  type="checkbox"
+                  checked={bookingCheckbox}
+                  onChange={(e) => setBookingCheckbox(e.target.checked)}
+                  className="mt-1 h-4 w-4 accent-white"
+                />
+                <span className="text-[14px] leading-relaxed text-white">
+                  Yes, the venue confirmed this slot.
+                </span>
+              </label>
+            ) : (
+              <p className="text-[13px] font-semibold text-status-success">
+                ✓ Venue booking confirmed
+              </p>
+            )}
+            <PrimaryButton
+              fullWidth
+              disabled={publishBusy || (!game.venueBookingConfirmedAt && !bookingCheckbox)}
+              onClick={() => void publishDraftGame()}
+            >
+              {publishBusy ? 'Publishing…' : 'Publish game'}
+            </PrimaryButton>
+          </section>
+        ) : null}
+
+        {isDraft && !isHost ? (
           <div className="glass-elevated p-4">
-            <p className="label-caps">Confirmed</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-status-warning">
+              Not published yet
+            </p>
+            <p className="mt-2 text-[14px] leading-relaxed text-white/45">
+              The host hasn&apos;t opened this game for players yet.
+            </p>
+          </div>
+        ) : null}
+
+        {isGameConfirmed ? (
+          <div className="glass-elevated glass-status-success p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-status-success">
+              ✓ Confirmed
+            </p>
             <p className="mt-2 text-[14px] leading-relaxed text-white/45">
               Minimum players reached. Roster is locked — the host/venue
               commitment is protected.
@@ -376,8 +534,9 @@ export function GameDetailsPage() {
         ) : null}
 
         {isLive ? (
-          <div className="glass-elevated p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white">
+          <div className="glass-elevated glass-status-live p-4">
+            <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-status-live animate-live-pulse">
+              <span className="status-dot" aria-hidden />
               Live
             </p>
           </div>
@@ -385,8 +544,9 @@ export function GameDetailsPage() {
 
         {isCompleted ? (
           <div className="glass p-4">
-            <p className="label-caps">Completed</p>
-            <p className="mt-2 text-[14px] text-white/45">How was the game?</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-status-neutral">
+              ✓ Completed
+            </p>
             {(myStatus === 'no_show' ||
               myStatus === 'attended' ||
               myStatus === 'confirmed') &&
@@ -416,23 +576,67 @@ export function GameDetailsPage() {
             <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-white/70">
               {game.distanceLabel}
             </p>
-          ) : (
+          ) : null}
+          {venueDirectionsUrl ? (
+            <SecondaryButton
+              className="mt-4 min-h-11"
+              type="button"
+              onClick={() =>
+                window.open(venueDirectionsUrl, '_blank', 'noopener,noreferrer')
+              }
+            >
+              <span className="inline-flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Directions
+              </span>
+            </SecondaryButton>
+          ) : null}
+          {game.venueBookingConfirmedAt && game.dbStatus !== 'draft' ? (
+            <p className="mt-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-status-success">
+              ✓ Host confirmed venue
+            </p>
+          ) : null}
+          {game.venueBookingConfirmedAt && game.dbStatus !== 'draft' ? (
+            <p className="mt-1 text-[12px] text-white/45">
+              Host has confirmed the venue slot for this game.
+            </p>
+          ) : !hasVenueLocation && !game.distanceLabel ? (
             <p className="mt-2 text-[12px] text-white/45">Host arranges venue</p>
-          )}
+          ) : null}
         </section>
 
         {/* Players + confirmation */}
         <section className="glass grid grid-cols-2 gap-4 p-5">
-          <div>
+          <div className="col-span-2 sm:col-span-1">
             <p className="label-caps">Players</p>
             <div className="mt-2">
-              <PlayerCount
-                confirmed={game.confirmedCount}
-                max={game.maxPlayers}
-                min={game.minPlayers}
-                waitlist={game.waitlistCount}
-              />
+              {game.dbStatus === 'open' && !isGameConfirmed && !isLive && !isCompleted ? (
+                <GameAvailability
+                  currentPlayers={game.confirmedCount}
+                  maximumPlayers={game.maxPlayers}
+                />
+              ) : (
+                <PlayerCount
+                  confirmed={game.confirmedCount}
+                  max={game.maxPlayers}
+                  min={game.minPlayers}
+                  waitlist={game.waitlistCount}
+                />
+              )}
             </div>
+            {isHost ? (
+              <ParticipantStatus
+                label="You're hosting"
+                tone="neutral"
+                className="mt-3"
+              />
+            ) : isConfirmedPlayer ? (
+              <ParticipantStatus label="You're in" tone="success" className="mt-3" />
+            ) : isReserved ? (
+              <ParticipantStatus label="Spot held" tone="warning" className="mt-3" />
+            ) : isWaitlisted ? (
+              <ParticipantStatus label="On waitlist" tone="warning" className="mt-3" />
+            ) : null}
           </div>
           <div>
             <p className="label-caps">Share</p>
@@ -462,14 +666,16 @@ export function GameDetailsPage() {
           </section>
         ) : null}
 
-        <GameStatus
-          game={{
-            status: game.status,
-            confirmationDeadline: game.confirmationDeadline,
-            confirmedCount: game.confirmedCount,
-            minPlayers: game.minPlayers,
-          }}
-        />
+        {!isCancelled && !isCompleted && !isLive ? (
+          <GameStatus
+            game={{
+              status: game.status,
+              confirmationDeadline: game.confirmationDeadline,
+              confirmedCount: game.confirmedCount,
+              minPlayers: game.minPlayers,
+            }}
+          />
+        ) : null}
 
         {/* Compact action row for confirmed players / host */}
         {(isHost || isConfirmedPlayer) && !isCancelled ? (
@@ -503,9 +709,13 @@ export function GameDetailsPage() {
                 disabled={busy}
                 onClick={() => {
                   setBusy(true)
+                  setActionError(null)
                   void createGameInvite({ gameId: game.id })
-                    .then((inv) => {
-                      setInviteUrl(`${window.location.origin}/join/game/${inv.token}`)
+                    .then(async (inv) => {
+                      const url = `${window.location.origin}/join/game/${inv.token}`
+                      await navigator.clipboard.writeText(url)
+                      setInviteCopied(true)
+                      window.setTimeout(() => setInviteCopied(false), 2000)
                     })
                     .catch((e) =>
                       setActionError(toUserMessage(e, "Couldn't create invite.")),
@@ -513,15 +723,9 @@ export function GameDetailsPage() {
                     .finally(() => setBusy(false))
                 }}
               >
-                Invite players
+                {inviteCopied ? 'Link copied' : 'Invite players'}
               </SecondaryButton>
             ) : null}
-          </div>
-        ) : null}
-
-        {inviteUrl ? (
-          <div className="glass p-3 text-[12px] break-all text-white/45">
-            {inviteUrl}
           </div>
         ) : null}
 
@@ -545,9 +749,9 @@ export function GameDetailsPage() {
         </p>
 
         {game.description ? (
-          <section>
+          <section className="glass p-4">
             <p className="label-caps">Host notes</p>
-            <p className="mt-2 text-[14px] leading-relaxed text-muted">
+            <p className="mt-2 text-[14px] leading-relaxed text-white/70">
               {game.description}
             </p>
           </section>
@@ -573,14 +777,22 @@ export function GameDetailsPage() {
           </div>
         </section>
 
-        {(canChat || isConfirmedPlayer || isHost) ? (
-          <div className="glass flex gap-0 overflow-hidden">
+        {(canChat || isConfirmedPlayer || isHost || hasVenueLocation) ? (
+          <div className="flex gap-1 overflow-hidden rounded-[8px] bg-white/[0.04] p-1">
             <TabBtn
               active={tab === 'players'}
               onClick={() => setTab('players')}
               icon={<Users className="h-4 w-4" />}
               label="Players"
             />
+            {hasVenueLocation ? (
+              <TabBtn
+                active={tab === 'location'}
+                onClick={() => setTab('location')}
+                icon={<MapPin className="h-4 w-4" />}
+                label="Location"
+              />
+            ) : null}
             <TabBtn
               active={tab === 'chat'}
               onClick={() => setTab('chat')}
@@ -605,40 +817,57 @@ export function GameDetailsPage() {
               setReportOpen(true)
             }}
           />
+        ) : tab === 'location' && game.venue && hasVenueLocation ? (
+          <div className="glass p-4">
+            <VenueReachPanel
+              venue={game.venue}
+              showCheckInHint={
+                isParticipant &&
+                (myStatus === 'confirmed' ||
+                  myStatus === 'attended' ||
+                  isGameConfirmed ||
+                  isLive)
+              }
+            />
+          </div>
         ) : (
           <section>
             <p className="label-caps">
               {isCompleted || isLive ? 'Attendance' : 'Roster'}
             </p>
-            <div className="glass mt-4 divide-y divide-white/10">
+            <div className="glass mt-4 overflow-hidden">
               {roster.map((p) => {
                 const checked = checkInByUser.has(p.userId) || Boolean(p.checkedInAt)
                 const isNoShow = p.status === 'no_show'
+                const roleLabel = isNoShow
+                  ? 'No-show'
+                  : checked
+                    ? 'Checked in'
+                    : isLive || isCompleted
+                      ? 'No check-in'
+                      : p.role === 'host'
+                        ? 'Host'
+                        : p.role === 'co_host'
+                          ? 'Co-host'
+                          : p.status
                 return (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between gap-2 py-3"
+                    className="flex items-center gap-3 border-b border-white/10 px-4 py-3 last:border-b-0"
                   >
+                    <PlayerAvatar
+                      player={{
+                        name: p.profile.displayName,
+                        avatarUrl: p.profile.avatarUrl,
+                      }}
+                      size="md"
+                    />
                     <div className="min-w-0 flex-1">
-                      <PlayerAvatar
-                        player={{
-                          name: p.profile.displayName,
-                          avatarUrl: p.profile.avatarUrl,
-                        }}
-                        showName
-                      />
-                      <p className="mt-0.5 pl-11 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
-                        {isNoShow
-                          ? 'No-show'
-                          : checked
-                            ? 'Checked in'
-                            : isLive || isCompleted
-                              ? 'No check-in'
-                              : p.role === 'host'
-                                ? 'Host'
-                                : p.role === 'co_host'
-                                  ? 'Co-host'
-                                  : p.status}
+                      <p className="truncate text-[14px] font-medium text-white">
+                        {p.profile.displayName}
+                      </p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-white/45">
+                        {roleLabel}
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
@@ -650,12 +879,13 @@ export function GameDetailsPage() {
                         />
                       ) : null}
                       {isHost &&
+                      !isCancelled &&
                       !checked &&
                       !isNoShow &&
                       ['confirmed', 'attended'].includes(p.status) &&
                       windowInfo?.hostWindowOpen ? (
                         <SecondaryButton
-                          className="!min-h-9 !px-2.5 !py-1.5 text-[12px]"
+                          className="!min-h-9 !px-2.5 !py-1.5 text-[11px]"
                           disabled={busy}
                           onClick={() => void doHostCheckIn(p)}
                         >
@@ -704,11 +934,13 @@ export function GameDetailsPage() {
                 )
               })}
               {roster.length === 0 ? (
-                <p className="py-4 text-[13px] text-muted">No players visible yet.</p>
+                <p className="px-4 py-4 text-[13px] text-white/45">
+                  No players visible yet.
+                </p>
               ) : null}
             </div>
-            <p className="mt-4 flex gap-2 text-[12px] leading-relaxed text-muted">
-              <Shield className="h-3.5 w-3.5 shrink-0" />
+            <p className="mt-4 flex items-start gap-2 text-[12px] leading-relaxed text-white/45">
+              <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               Player phone numbers are visible only to the host — not to other
               players. Your number is not publicly displayed.
             </p>
@@ -723,6 +955,32 @@ export function GameDetailsPage() {
             Part of a recurring group →
           </Link>
         ) : null}
+
+        <GameActionDock>
+          <GameActionButton
+            user={user}
+            game={game}
+            busy={busy || publishBusy}
+            isCancelled={isCancelled}
+            isDraft={isDraft}
+            canSelfCheckIn={canSelfCheckIn}
+            windowInfo={windowInfo}
+            isConfirmedPlayer={isConfirmedPlayer}
+            isHost={isHost}
+            isGameConfirmed={isGameConfirmed}
+            isLive={isLive}
+            isCompleted={isCompleted}
+            isReserved={isReserved}
+            isWaitlisted={isWaitlisted}
+            rosterLocked={rosterLocked}
+            isFull={isFull}
+            iCheckedIn={iCheckedIn}
+            reservationLabel={reservationLabel}
+            onSelfCheckIn={() => void doSelfCheckIn()}
+            onPublishDraft={() => void publishDraftGame()}
+            onNavigate={navigate}
+          />
+        </GameActionDock>
       </div>
 
       {confirmNoShow ? (
@@ -767,57 +1025,164 @@ export function GameDetailsPage() {
         allowBlock={Boolean(reportTarget?.userId)}
       />
 
-      <div className="glass-nav fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-50 p-4 lg:bottom-0 lg:left-52">
-        <div className="mx-auto flex max-w-3xl gap-3">
-          {!user ? (
-            <PrimaryButton
-              fullWidth
-              onClick={() =>
-                navigate(`/auth?next=${encodeURIComponent(`/games/${game.id}`)}`)
-              }
-            >
-              Sign in to join
-            </PrimaryButton>
-          ) : isCancelled ? (
-            <PrimaryButton fullWidth disabled>
-              Cancelled
-            </PrimaryButton>
-          ) : canSelfCheckIn && windowInfo?.playerWindowOpen ? (
-            <PrimaryButton fullWidth disabled={busy} onClick={() => void doSelfCheckIn()}>
-              Check in
-            </PrimaryButton>
-          ) : isConfirmedPlayer && !isHost ? (
-            <PrimaryButton fullWidth disabled>
-              You&apos;re In
-            </PrimaryButton>
-          ) : isHost && (isGameConfirmed || isLive || isCompleted) ? (
-            <PrimaryButton fullWidth disabled>
-              {isCompleted ? 'Completed' : isLive ? 'Live' : 'Hosting'}
-            </PrimaryButton>
-          ) : isReserved ? (
-            <PrimaryButton fullWidth onClick={() => navigate(`/games/${game.id}/join`)}>
-              {reservationLabel ?? 'Reserved'}
-            </PrimaryButton>
-          ) : isWaitlisted ? (
-            <PrimaryButton fullWidth onClick={() => navigate(`/games/${game.id}/join`)}>
-              On waitlist
-            </PrimaryButton>
-          ) : isGameConfirmed || rosterLocked ? (
-            <PrimaryButton fullWidth disabled>
-              Locked
-            </PrimaryButton>
-          ) : isFull ? (
-            <PrimaryButton fullWidth onClick={() => navigate(`/games/${game.id}/join?mode=waitlist`)}>
-              Join Waitlist
-            </PrimaryButton>
-          ) : (
-            <PrimaryButton fullWidth onClick={() => navigate(`/games/${game.id}/join`)}>
-              Join
-            </PrimaryButton>
-          )}
-        </div>
-      </div>
     </div>
+  )
+}
+
+function GameActionDock({ children }: { children: ReactNode }) {
+  return (
+    <div className="game-action-dock">
+      <div className="glass-nav rounded-[12px] p-3 lg:rounded-[8px]">{children}</div>
+    </div>
+  )
+}
+
+function GameActionButton({
+  user,
+  game,
+  busy,
+  isCancelled,
+  isDraft,
+  canSelfCheckIn,
+  windowInfo,
+  isConfirmedPlayer,
+  isHost,
+  isGameConfirmed,
+  isLive,
+  isCompleted,
+  isReserved,
+  isWaitlisted,
+  rosterLocked,
+  isFull,
+  iCheckedIn,
+  reservationLabel,
+  onSelfCheckIn,
+  onPublishDraft,
+  onNavigate,
+}: {
+  user: ReturnType<typeof useAuth>['user']
+  game: GameDetail
+  busy: boolean
+  isCancelled: boolean
+  isDraft: boolean
+  canSelfCheckIn: boolean
+  windowInfo: CheckInWindow | null
+  isConfirmedPlayer: boolean
+  isHost: boolean
+  isGameConfirmed: boolean
+  isLive: boolean
+  isCompleted: boolean
+  isReserved: boolean
+  isWaitlisted: boolean
+  rosterLocked: boolean
+  isFull: boolean
+  iCheckedIn: boolean
+  reservationLabel: string | null
+  onSelfCheckIn: () => void
+  onPublishDraft: () => void
+  onNavigate: ReturnType<typeof useNavigate>
+}) {
+  if (!user) {
+    return (
+      <PrimaryButton
+        fullWidth
+        onClick={() =>
+          onNavigate(`/auth?next=${encodeURIComponent(`/games/${game.id}`)}`)
+        }
+      >
+        Sign in to join
+      </PrimaryButton>
+    )
+  }
+  if (isCancelled) {
+    return (
+      <PrimaryButton fullWidth disabled variant="outline">
+        Game cancelled
+      </PrimaryButton>
+    )
+  }
+  if (isDraft && isHost) {
+    return (
+      <PrimaryButton fullWidth disabled={busy} onClick={onPublishDraft}>
+        Publish game
+      </PrimaryButton>
+    )
+  }
+  if (isDraft) {
+    return (
+      <PrimaryButton fullWidth disabled variant="outline">
+        Not published yet
+      </PrimaryButton>
+    )
+  }
+  if (iCheckedIn) {
+    return (
+      <PrimaryButton fullWidth disabled variant="outline">
+        ✓ You&apos;re checked in
+      </PrimaryButton>
+    )
+  }
+  if (canSelfCheckIn && windowInfo?.playerWindowOpen) {
+    return (
+      <PrimaryButton fullWidth disabled={busy} onClick={onSelfCheckIn}>
+        Check in
+      </PrimaryButton>
+    )
+  }
+  if (isHost) {
+    return (
+      <PrimaryButton fullWidth disabled variant="outline">
+        {isCompleted
+          ? 'Completed'
+          : isLive
+            ? 'Live'
+            : isGameConfirmed
+              ? 'Hosting'
+              : "You're hosting"}
+      </PrimaryButton>
+    )
+  }
+  if (isConfirmedPlayer || isReserved || isWaitlisted) {
+    return (
+      <PrimaryButton
+        fullWidth
+        disabled={!isReserved && !isWaitlisted}
+        variant={isReserved || isWaitlisted ? 'solid' : 'outline'}
+        onClick={() => {
+          if (isReserved || isWaitlisted) {
+            onNavigate(`/games/${game.id}/join`)
+          }
+        }}
+      >
+        {isWaitlisted
+          ? 'On waitlist'
+          : isReserved
+            ? reservationLabel ?? 'Reserved — confirm'
+            : "You're in"}
+      </PrimaryButton>
+    )
+  }
+  if (isGameConfirmed || rosterLocked) {
+    return (
+      <PrimaryButton fullWidth disabled variant="outline">
+        Roster locked
+      </PrimaryButton>
+    )
+  }
+  if (isFull) {
+    return (
+      <PrimaryButton
+        fullWidth
+        onClick={() => onNavigate(`/games/${game.id}/join?mode=waitlist`)}
+      >
+        Join waitlist
+      </PrimaryButton>
+    )
+  }
+  return (
+    <PrimaryButton fullWidth onClick={() => onNavigate(`/games/${game.id}/join`)}>
+      Join
+    </PrimaryButton>
   )
 }
 
@@ -841,8 +1206,8 @@ function TabBtn({
       onClick={onClick}
       className={
         active
-          ? 'flex flex-1 items-center justify-center gap-1.5 border-r border-white/10 bg-white py-2.5 text-[13px] font-semibold text-cta last:border-r-0'
-          : 'flex flex-1 items-center justify-center gap-1.5 border-r border-white/10 py-2.5 text-[13px] font-semibold text-white/45 last:border-r-0 disabled:opacity-40'
+          ? 'flex flex-1 items-center justify-center gap-1.5 rounded-[6px] bg-white/[0.12] py-2.5 text-[13px] font-semibold text-white'
+          : 'flex flex-1 items-center justify-center gap-1.5 rounded-[6px] py-2.5 text-[13px] font-semibold text-white/45 disabled:opacity-40'
       }
     >
       {icon}

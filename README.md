@@ -43,6 +43,21 @@ npm install
 npm run dev
 ```
 
+## Deploy to Vercel
+
+See **[docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md)** for the full checklist (env vars, Supabase auth URLs, pg_cron verification).
+
+Quick summary:
+
+1. Import repo on Vercel (Vite preset, output `dist`).
+2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel env.
+3. Set Supabase **Site URL** to your `*.vercel.app` domain.
+4. Deploy.
+
+```bash
+npm run build   # verify locally before pushing
+```
+
 ### Demo accounts (after seed migration)
 
 | Email | Password |

@@ -32,7 +32,7 @@ export function PrimaryButton({
           ),
         variant === 'outline' &&
           cn(
-            'border border-white/25 bg-white/[0.07] text-white backdrop-blur-[12px] hover:border-white/45 hover:bg-white/[0.12]',
+            'border border-white/25 bg-white/[0.07] text-white backdrop-blur-glass hover:border-white/45 hover:bg-white/[0.12]',
             'disabled:opacity-40',
           ),
         variant === 'ghost' &&

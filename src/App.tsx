@@ -11,6 +11,9 @@ const LandingPage = lazy(() =>
 const AuthPage = lazy(() =>
   import('@/pages/AuthPage').then((m) => ({ default: m.AuthPage })),
 )
+const WelcomePage = lazy(() =>
+  import('@/pages/WelcomePage').then((m) => ({ default: m.WelcomePage })),
+)
 const HomePage = lazy(() =>
   import('@/pages/HomePage').then((m) => ({ default: m.HomePage })),
 )
@@ -99,6 +102,7 @@ export default function App() {
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/welcome" element={<WelcomePage />} />
                 <Route
                   path="/join/game/:token"
                   element={<JoinGameInvitePage />}

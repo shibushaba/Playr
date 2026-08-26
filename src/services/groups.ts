@@ -1,6 +1,6 @@
 import { AppError, logDevError, parsePlayrRpcError } from '@/lib/errors'
 import { supabase } from '@/lib/supabase'
-import { gameSelect, mapGamesToListItems } from '@/services/games'
+import { gameSelect, groupSelect, mapGamesToListItems } from '@/services/games'
 import type {
   GameRsvpResponse,
   GroupMemberRole,
@@ -111,8 +111,6 @@ function mapGroup(
     myMembership: myMembership ?? null,
   }
 }
-
-const groupSelect = '*, sports ( id, name, slug, icon ), venues ( * )'
 
 async function attachMyMembership(
   groups: GroupListItem[],
@@ -280,7 +278,7 @@ export async function createGroup(input: {
 
   if (error || !data) {
     logDevError('createGroup', error)
-    throw new AppError("Couldn't create group. Try again.")
+    throw parsePlayrRpcError(error, "Couldn't create group. Try again.")
   }
 
   return mapGroup(data as unknown as GroupJoin, {

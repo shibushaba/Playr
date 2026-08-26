@@ -5,6 +5,10 @@ import type { Tables } from '@/types/database'
 import type { VenueRecord } from '@/types/domain'
 import { parseStringArray } from '@/types/domain'
 
+/** Columns granted to clients — never use `*` (phone is restricted). */
+export const venuePublicSelect =
+  'id, name, description, address, city, state, country, latitude, longitude, map_url, sports, facilities, opening_hours, website, image_url, status, created_by, claimed_by, created_at, updated_at'
+
 export interface SimilarVenue {
   id: string
   name: string
@@ -41,7 +45,7 @@ export async function listVenues(options?: {
   city?: string
   includePendingOwn?: boolean
 }): Promise<VenueRecord[]> {
-  let query = supabase.from('venues').select('*').order('name')
+  let query = supabase.from('venues').select(venuePublicSelect).order('name')
 
   if (options?.city) {
     query = query.eq('city', options.city)
@@ -59,7 +63,7 @@ export async function listVenues(options?: {
 export async function getVenue(id: string): Promise<VenueRecord | null> {
   const { data, error } = await supabase
     .from('venues')
-    .select('*')
+    .select(venuePublicSelect)
     .eq('id', id)
     .maybeSingle()
 
@@ -110,6 +114,7 @@ export async function createVenue(input: {
   latitude: number
   longitude: number
   mapUrl: string
+  phone: string
   address?: string | null
   city: string
   state?: string | null
@@ -144,6 +149,7 @@ export async function createVenue(input: {
     p_latitude: input.latitude,
     p_longitude: input.longitude,
     p_map_url: input.mapUrl.trim(),
+    p_phone: input.phone.trim(),
     p_address: input.address ?? undefined,
     p_city: input.city.trim(),
     p_state: input.state ?? undefined,
@@ -197,6 +203,7 @@ export async function submitVenue(input: {
     latitude: input.latitude,
     longitude: input.longitude,
     mapUrl: input.mapUrl,
+    phone: '+910000000000',
   })
 
   const {

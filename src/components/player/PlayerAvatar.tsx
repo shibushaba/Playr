@@ -2,7 +2,7 @@ import { cn, initials } from '@/lib/format'
 
 interface Props {
   player: { name: string; avatarUrl?: string | null }
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   className?: string
   showName?: boolean
 }
@@ -11,6 +11,7 @@ const sizes = {
   sm: 'h-8 w-8 text-[10px]',
   md: 'h-10 w-10 text-xs',
   lg: 'h-14 w-14 text-sm',
+  xl: 'h-20 w-20 text-base',
 }
 
 export function PlayerAvatar({
@@ -25,7 +26,7 @@ export function PlayerAvatar({
         <img
           src={player.avatarUrl}
           alt={player.name}
-          className={cn('rounded-[8px] object-cover grayscale', sizes[size])}
+          className={cn('rounded-[8px] object-cover', sizes[size])}
         />
       ) : (
         <div

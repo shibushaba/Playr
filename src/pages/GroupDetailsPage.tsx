@@ -1,4 +1,5 @@
 import { GameCard } from '@/components/game/GameCard'
+import { GameAvailability } from '@/components/game/GameAvailability'
 import { Header } from '@/components/layout/Header'
 import { PlayerAvatar } from '@/components/player/PlayerAvatar'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -232,6 +233,18 @@ export function GroupDetailsPage() {
               {group.description}
             </p>
           ) : null}
+          {upcoming[0] && upcoming[0].dbStatus === 'open' ? (
+            <div className="mt-6 border-t border-white/10 pt-5">
+              <p className="label-caps">Next game</p>
+              <div className="mt-2">
+                <GameAvailability
+                  currentPlayers={upcoming[0].confirmedCount}
+                  maximumPlayers={upcoming[0].maxPlayers}
+                  compact
+                />
+              </div>
+            </div>
+          ) : null}
         </header>
 
         {/* Meta strip */}
@@ -285,19 +298,25 @@ export function GroupDetailsPage() {
 
         <section>
           <p className="label-caps mb-3">Members</p>
-          <div className="glass divide-y divide-white/10">
+          <div className="glass overflow-hidden">
             {members
               .filter((m) => m.status === 'active')
               .map((m) => (
-                <div key={m.id} className="flex items-center justify-between py-3">
+                <div
+                  key={m.id}
+                  className="flex items-center gap-3 border-b border-white/10 px-4 py-3 last:border-b-0"
+                >
                   <PlayerAvatar
                     player={{
                       name: m.profile.displayName,
                       avatarUrl: m.profile.avatarUrl,
                     }}
-                    showName
+                    size="md"
                   />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
+                  <p className="min-w-0 flex-1 truncate text-[14px] font-medium text-white">
+                    {m.profile.displayName}
+                  </p>
+                  <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/45">
                     {m.role === 'host'
                       ? 'Host'
                       : m.role === 'co_host'
@@ -307,7 +326,7 @@ export function GroupDetailsPage() {
                 </div>
               ))}
             {members.filter((m) => m.status === 'active').length === 0 ? (
-              <p className="py-4 text-[13px] text-muted">No members yet.</p>
+              <p className="px-4 py-4 text-[13px] text-white/45">No members yet.</p>
             ) : null}
           </div>
         </section>

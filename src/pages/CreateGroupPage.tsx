@@ -1,11 +1,13 @@
 import { Header } from '@/components/layout/Header'
 import { SportChip } from '@/components/sport/SportChip'
+import { ProfileCompletionGate } from '@/components/trust/ProfileCompletionGate'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { VenueCard } from '@/components/venue/VenueCard'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLocationDiscovery } from '@/contexts/LocationContext'
 import { toUserMessage } from '@/lib/errors'
+import { canCreateGroup } from '@/lib/profileCompletion'
 import type { GroupVisibility, RecurrenceType } from '@/types/database'
 import { getNearbyVenues } from '@/services/discovery'
 import { createGroup } from '@/services/groups'
@@ -27,7 +29,7 @@ const WEEKDAYS = [
 
 export function CreateGroupPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { location, radiusMeters } = useLocationDiscovery()
   const [step, setStep] = useState(1)
   const [sports, setSports] = useState<SportRecord[]>([])
@@ -191,7 +193,7 @@ export function CreateGroupPage() {
             </div>
             <Field label="Group name">
               <input
-                className="field"
+                className="glass-input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Daily 7 PM Football"
@@ -199,7 +201,7 @@ export function CreateGroupPage() {
             </Field>
             <Field label="Description">
               <textarea
-                className="field min-h-24 py-3"
+                className="glass-input"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Regular pickup — show up ready to play"
@@ -236,7 +238,7 @@ export function CreateGroupPage() {
             <Field label="Start time">
               <input
                 type="time"
-                className="field"
+                className="glass-input"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
               />
@@ -244,7 +246,7 @@ export function CreateGroupPage() {
             <Field label="Duration (minutes)">
               <input
                 type="number"
-                className="field"
+                className="glass-input"
                 min={30}
                 max={240}
                 value={duration}
@@ -297,7 +299,7 @@ export function CreateGroupPage() {
             <Field label="Optional end date">
               <input
                 type="date"
-                className="field"
+                className="glass-input"
                 value={endsOn}
                 onChange={(e) => setEndsOn(e.target.value)}
               />
@@ -328,7 +330,7 @@ export function CreateGroupPage() {
               <Field label="Minimum">
                 <input
                   type="number"
-                  className="field"
+                  className="glass-input"
                   min={2}
                   value={minPlayers}
                   onChange={(e) => setMinPlayers(Number(e.target.value) || 2)}
@@ -337,7 +339,7 @@ export function CreateGroupPage() {
               <Field label="Maximum">
                 <input
                   type="number"
-                  className="field"
+                  className="glass-input"
                   min={minPlayers}
                   value={maxPlayers}
                   onChange={(e) => setMaxPlayers(Number(e.target.value) || minPlayers)}
@@ -385,7 +387,7 @@ export function CreateGroupPage() {
               <Field label="Regular member priority (hours)">
                 <input
                   type="number"
-                  className="field"
+                  className="glass-input"
                   min={0}
                   max={72}
                   value={priorityHours}
@@ -412,6 +414,11 @@ export function CreateGroupPage() {
               </h2>
               <p className="mt-1 text-[14px] text-white/45">Confirm and create.</p>
             </div>
+
+            {!canCreateGroup(profile, user) ? (
+              <ProfileCompletionGate requiredFor="venue" />
+            ) : null}
+
             <div className="glass space-y-3 p-4">
               <p className="label-caps">{sport?.name}</p>
               <p className="text-[22px] font-semibold tracking-tight text-white">
@@ -446,7 +453,11 @@ export function CreateGroupPage() {
               <SecondaryButton fullWidth onClick={() => setStep(3)}>
                 Back
               </SecondaryButton>
-              <PrimaryButton fullWidth disabled={busy} onClick={() => void submit()}>
+              <PrimaryButton
+                fullWidth
+                disabled={busy || !canCreateGroup(profile, user)}
+                onClick={() => void submit()}
+              >
                 {busy ? 'Creating…' : 'Create Group'}
               </PrimaryButton>
             </div>
@@ -460,23 +471,6 @@ export function CreateGroupPage() {
           Prefer a one-off game instead?
         </Link>
       </div>
-
-      <style>{`
-        .field {
-          width: 100%;
-          min-height: 3rem;
-          border-radius: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.045);
-          padding: 0 1rem;
-          outline: none;
-          color: #fff;
-        }
-        .field:focus {
-          border-color: rgba(255, 255, 255, 0.45);
-          background: rgba(255, 255, 255, 0.07);
-        }
-      `}</style>
     </div>
   )
 }

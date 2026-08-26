@@ -132,6 +132,7 @@ function mapNearbyGame(row: NearbyGameRow): GameListItem {
       row.maximum_players,
     ),
     dbStatus: row.status,
+    venueBookingConfirmedAt: null,
     distanceMeters: row.distance_meters,
     distanceLabel: formatDistanceMeters(row.distance_meters),
   }

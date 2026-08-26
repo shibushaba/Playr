@@ -1,10 +1,13 @@
+import { ParticipantStatus } from '@/components/game/GameAvailability'
 import { Header } from '@/components/layout/Header'
+import { ProfileCompletionGate } from '@/components/trust/ProfileCompletionGate'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { useAuth } from '@/contexts/AuthContext'
-import { toUserMessage } from '@/lib/errors'
-import { formatDateTime, formatInr, formatTime } from '@/lib/format'
+import { parsePlayrRpcError, toUserMessage } from '@/lib/errors'
+import { cn, formatDateTime, formatInr, formatTime } from '@/lib/format'
+import { canJoinGame } from '@/lib/profileCompletion'
 import {
   cancelParticipation,
   confirmReservation,
@@ -21,11 +24,13 @@ export function JoinGamePage() {
   const [search] = useSearchParams()
   const waitlistMode = search.get('mode') === 'waitlist'
   const navigate = useNavigate()
-  const { user, loading: authLoading } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
   const [game, setGame] = useState<GameDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [agreed, setAgreed] = useState(false)
-  const [phase, setPhase] = useState<'disclose' | 'holding' | 'done'>('disclose')
+  const [phase, setPhase] = useState<
+    'verify' | 'disclose' | 'holding' | 'done' | 'hosting'
+  >('disclose')
   const [remaining, setRemaining] = useState(8 * 60)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -55,8 +60,16 @@ export function JoinGamePage() {
             )
           }
         } else if (
+          user &&
+          (g.hostId === user.id ||
+            g.myParticipation?.role === 'host' ||
+            g.myParticipation?.role === 'co_host')
+        ) {
+          setPhase('hosting')
+        } else if (
           g.myParticipation?.status === 'confirmed' ||
-          g.myParticipation?.status === 'waitlisted'
+          g.myParticipation?.status === 'waitlisted' ||
+          g.myParticipation?.status === 'attended'
         ) {
           setWaitlisted(g.myParticipation.status === 'waitlisted')
           setPhase('done')
@@ -71,7 +84,18 @@ export function JoinGamePage() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, user])
+
+  useEffect(() => {
+    if (!user || !game || phase === 'holding' || phase === 'done' || phase === 'hosting') {
+      return
+    }
+    if (!canJoinGame(profile, user)) {
+      setPhase('verify')
+    } else if (phase === 'verify') {
+      setPhase('disclose')
+    }
+  }, [user, profile, game, phase])
 
   useEffect(() => {
     if (phase !== 'holding') return
@@ -155,7 +179,21 @@ export function JoinGamePage() {
         setPhase('holding')
       }
     } catch (e) {
-      setError(toUserMessage(e, "Couldn't join this game. Try again."))
+      const parsed = parsePlayrRpcError(e, "Couldn't join this game. Try again.")
+      if (parsed.code === 'GAME_FULL' && id) {
+        setError('That spot may have been taken. Refreshing availability…')
+        try {
+          const refreshed = await getGameDetail(id)
+          setGame(refreshed)
+          if (refreshed && refreshed.confirmedCount >= refreshed.maxPlayers) {
+            setError('That game is full. You can join the waitlist instead.')
+          }
+        } catch {
+          setError(parsed.message)
+        }
+      } else {
+        setError(parsed.message)
+      }
     } finally {
       setBusy(false)
     }
@@ -229,13 +267,17 @@ export function JoinGamePage() {
           </p>
         ) : null}
 
+        {phase === 'verify' ? (
+          <ProfileCompletionGate requiredFor="join" />
+        ) : null}
+
         {phase === 'disclose' ? (
           <>
             <section>
               <h2 className="section-label">Contact disclosure</h2>
               <p className="mt-3 text-[14px] leading-relaxed text-white/45">
-                Your phone number will be visible to the host for game
-                coordination. It is not shown publicly.
+                Your phone number is visible to the host if you&apos;ve added one
+                on your profile — you can add or change it anytime.
               </p>
               {!useWaitlist ? (
                 <p className="mt-2 text-[14px] leading-relaxed text-white/45">
@@ -258,7 +300,7 @@ export function JoinGamePage() {
                 className="mt-1 h-4 w-4 accent-white"
               />
               <span className="text-[14px] leading-relaxed text-white">
-                I understand
+                I understand and agree
               </span>
             </label>
 
@@ -277,13 +319,20 @@ export function JoinGamePage() {
         ) : null}
 
         {phase === 'holding' ? (
-          <section className="glass-elevated p-6 text-center">
-            <p className="label-caps">Spot held</p>
-            <p className="mt-4 font-[family-name:var(--font-display)] text-[48px] font-semibold tabular-nums tracking-tight text-white">
+          <section className="glass-elevated glass-status-warning p-6 text-center">
+            <ParticipantStatus label="Spot held" tone="warning" className="justify-center" />
+            <p
+              className={cn(
+                'mt-4 font-[family-name:var(--font-display)] text-[48px] font-semibold tabular-nums tracking-tight',
+                remaining <= 120 ? 'text-status-warning status-emphasis animate-urgency-pulse' : 'text-status-warning',
+              )}
+            >
               {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
             </p>
             <p className="mt-3 text-[13px] text-white/45">
-              Confirm before this timer ends.
+              {remaining <= 120
+                ? 'Hurry — your spot expires soon.'
+                : 'Confirm before this timer ends.'}
             </p>
             <div className="mt-8 space-y-3">
               <PrimaryButton
@@ -304,9 +353,39 @@ export function JoinGamePage() {
           </section>
         ) : null}
 
+        {phase === 'hosting' ? (
+          <section className="glass-elevated p-6 text-center">
+            <p className="display-lg">You&apos;re hosting.</p>
+            <p className="mt-3 text-[14px] text-white/45">
+              You created this game — manage it from game details.
+            </p>
+            <div className="mt-8 flex flex-col gap-3">
+              <Link to="/my-games">
+                <PrimaryButton fullWidth>My Games</PrimaryButton>
+              </Link>
+              <Link to={`/games/${game.id}`}>
+                <SecondaryButton fullWidth>Game details</SecondaryButton>
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
         {phase === 'done' ? (
           <section className="glass-elevated p-6 text-center">
-            <p className="display-lg">
+            {waitlisted ? (
+              <ParticipantStatus
+                label="On waitlist"
+                tone="warning"
+                className="justify-center"
+              />
+            ) : (
+              <ParticipantStatus
+                label="You're in"
+                tone="success"
+                className="justify-center"
+              />
+            )}
+            <p className="display-lg mt-4">
               {waitlisted ? "You're on the waitlist." : "You're in."}
             </p>
             <p className="mt-3 text-[14px] text-white/45">

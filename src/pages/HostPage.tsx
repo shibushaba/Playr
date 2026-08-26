@@ -1,21 +1,37 @@
 import { Header } from '@/components/layout/Header'
 import { SportChip } from '@/components/sport/SportChip'
+import { CallButton } from '@/components/game/CallButton'
+import { HostPublishChecklist } from '@/components/trust/HostPublishChecklist'
+import { ProfileCompletionGate } from '@/components/trust/ProfileCompletionGate'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { VenueCard } from '@/components/venue/VenueCard'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLocationDiscovery } from '@/contexts/LocationContext'
 import { toUserMessage } from '@/lib/errors'
+import { formatPhoneDisplay } from '@/lib/phone'
+import { canHostGame, getProfileCompletion, hasVerifiedEmail } from '@/lib/profileCompletion'
 import type { GameVisibility } from '@/types/database'
 import { getNearbyVenues } from '@/services/discovery'
 import { createGame } from '@/services/games'
 import { listSports } from '@/services/sports'
 import { getVenue, listVenues } from '@/services/venues'
+import {
+  confirmGameVenueBooking,
+  getVenueContactPhone,
+  publishGame,
+} from '@/services/verification'
 import type { SportRecord, VenueRecord } from '@/types/domain'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
-const STEPS = ['What', 'Where', 'When', 'Who', 'Review'] as const
+const STEPS = [
+  { n: 1, label: 'Sport' },
+  { n: 2, label: 'Venue' },
+  { n: 3, label: 'Time' },
+  { n: 4, label: 'Players' },
+  { n: 5, label: 'Review' },
+] as const
 
 function tomorrowDate(): string {
   const d = new Date()
@@ -35,7 +51,7 @@ export function HostPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const preselectedVenue = params.get('venueId')
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { location, radiusMeters } = useLocationDiscovery()
   const [step, setStep] = useState(preselectedVenue ? 2 : 1)
   const [sports, setSports] = useState<SportRecord[]>([])
@@ -47,7 +63,10 @@ export function HostPage() {
   const [share, setShare] = useState('120')
   const [visibility, setVisibility] = useState<GameVisibility>('public')
   const [venueId, setVenueId] = useState(preselectedVenue ?? '')
-  const [hostConfirm, setHostConfirm] = useState(false)
+  const [bookingCheckbox, setBookingCheckbox] = useState(false)
+  const [venuePhone, setVenuePhone] = useState<string | null>(null)
+  const [venuePhoneLoading, setVenuePhoneLoading] = useState(false)
+  const [bookingResetNotice, setBookingResetNotice] = useState(false)
   const [notes, setNotes] = useState('')
   const [gameDate, setGameDate] = useState(tomorrowDate())
   const [startTime, setStartTime] = useState('19:00')
@@ -110,6 +129,36 @@ export function HostPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid refetch loops on venueId
   }, [location, radiusMeters, preselectedVenue])
 
+  useEffect(() => {
+    if (!venueId || !user) {
+      setVenuePhone(null)
+      return
+    }
+    let cancelled = false
+    setVenuePhoneLoading(true)
+    void getVenueContactPhone(venueId)
+      .then((phone) => {
+        if (!cancelled) setVenuePhone(phone)
+      })
+      .catch(() => {
+        if (!cancelled) setVenuePhone(null)
+      })
+      .finally(() => {
+        if (!cancelled) setVenuePhoneLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [venueId, user])
+
+  const [hostConfirm, setHostConfirm] = useState(false)
+
+  useEffect(() => {
+    setBookingCheckbox(false)
+    setHostConfirm(false)
+    setBookingResetNotice(true)
+  }, [venueId, gameDate, startTime])
+
   const selectedSport = sports.find((s) => s.id === sportId)
   const selectedVenue = venues.find((v) => v.id === venueId)
   const nearbyVenues = useMemo(() => {
@@ -119,13 +168,109 @@ export function HostPage() {
     return matched.length ? matched : venues
   }, [venues, selectedSport])
 
+  const hostReady = canHostGame(profile, user)
+  const profileCompletion = getProfileCompletion(profile, user)
+  const endTime = `${addMinutes(startTime, 90)}:00`.slice(0, 8)
+
+  const checklistItems = useMemo(() => {
+    const nameDone = Boolean(profile?.display_name?.trim())
+    const emailDone = hasVerifiedEmail(profile, user)
+    const venueDone = Boolean(venueId && selectedVenue)
+    const contactDone = Boolean(venuePhone)
+    const bookingDone = bookingCheckbox
+    const detailsDone = Boolean(sportId && title.trim() && gameDate && startTime)
+
+    return [
+      {
+        id: 'profile',
+        label: 'Profile',
+        detail: nameDone ? profile?.display_name ?? 'Complete' : 'Add display name',
+        done: nameDone,
+      },
+      {
+        id: 'email',
+        label: 'Email verified',
+        detail: emailDone ? 'Verified' : 'Required to host',
+        done: emailDone,
+      },
+      {
+        id: 'venue',
+        label: 'Venue',
+        detail: selectedVenue?.name ?? 'Select a venue',
+        done: venueDone,
+      },
+      {
+        id: 'contact',
+        label: 'Venue contact',
+        detail: venuePhoneLoading
+          ? 'Loading…'
+          : venuePhone
+            ? formatPhoneDisplay(venuePhone)
+            : 'Phone required',
+        done: contactDone,
+        action: venuePhone ? (
+          <CallButton phone={venuePhone} label="Call venue →" compact />
+        ) : null,
+      },
+      {
+        id: 'booking',
+        label: 'Venue booking',
+        detail: bookingDone ? 'Ready to confirm on publish' : 'Confirm slot with venue',
+        done: bookingDone,
+      },
+      {
+        id: 'details',
+        label: 'Game details',
+        detail: detailsDone ? 'Ready' : 'Complete earlier steps',
+        done: detailsDone,
+      },
+    ]
+  }, [
+    profile,
+    user,
+    venueId,
+    selectedVenue,
+    venuePhone,
+    venuePhoneLoading,
+    bookingCheckbox,
+    sportId,
+    title,
+    gameDate,
+    startTime,
+  ])
+
   async function publish() {
     if (!user) {
       navigate('/auth?next=/host')
       return
     }
+    if (!hostReady) {
+      setError(profileCompletion.message)
+      return
+    }
+    if (!sportId) {
+      setError('Select a sport.')
+      return
+    }
+    if (!venueId) {
+      setError('Select a venue.')
+      return
+    }
+    if (!venuePhone) {
+      setError('Venue phone is required. Choose another venue or add contact details.')
+      return
+    }
+    if (!bookingCheckbox) {
+      setError('Confirm that the venue slot is booked before publishing.')
+      return
+    }
+    if (!hostConfirm) {
+      setError('Acknowledge host responsibility before publishing.')
+      return
+    }
     setBusy(true)
     setError(null)
+    setBookingResetNotice(false)
     try {
       const game = await createGame({
         title,
@@ -134,15 +279,17 @@ export function HostPage() {
         venueId,
         gameDate,
         startTime: `${startTime}:00`.slice(0, 8),
-        endTime: `${addMinutes(startTime, 90)}:00`.slice(0, 8),
+        endTime,
         minimumPlayers: minPlayers,
         maximumPlayers: maxPlayers,
         playerShare: share ? Number(share) : null,
         visibility,
       })
+      await confirmGameVenueBooking(game.id)
+      await publishGame(game.id)
       navigate(`/games/${game.id}`)
     } catch (e) {
-      setError(toUserMessage(e, "Couldn't create game. Try again."))
+      setError(toUserMessage(e, "Couldn't publish game. Try again."))
     } finally {
       setBusy(false)
     }
@@ -166,19 +313,19 @@ export function HostPage() {
     <div className="pb-10">
       <Header
         title="Host a game"
-        subtitle={`${STEPS[step - 1]} · ${step} of ${STEPS.length}`}
+        subtitle={`${String(STEPS[step - 1].n).padStart(2, '0')} ${STEPS[step - 1].label.toUpperCase()} · ${step} of ${STEPS.length}`}
         backTo={step > 1 ? undefined : '/home'}
         onBack={step > 1 ? () => setStep((s) => s - 1) : undefined}
       />
 
       <div className="page-pad py-6">
         <nav className="mb-8 flex gap-1" aria-label="Steps">
-          {STEPS.map((label, i) => {
-            const n = i + 1
+          {STEPS.map((s) => {
+            const n = s.n
             const active = n === step
             const done = n < step
             return (
-              <div key={label} className="flex-1">
+              <div key={s.label} className="flex-1">
                 <div
                   className={
                     active
@@ -195,7 +342,7 @@ export function HostPage() {
                       : 'mt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/45'
                   }
                 >
-                  {label}
+                  {String(s.n).padStart(2, '0')} {s.label}
                 </p>
               </div>
             )
@@ -233,7 +380,7 @@ export function HostPage() {
             </div>
             <Field label="Game title">
               <input
-                className="field"
+                className="glass-input"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -275,8 +422,19 @@ export function HostPage() {
                     .join(' · ')}
                 </p>
                 <p className="mt-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-white/70">
-                  Selected ✓
+                  Selected ✓ — selecting does not book the venue
                 </p>
+                {venuePhone ? (
+                  <div className="mt-4 border-t border-white/10 pt-4">
+                    <p className="label-caps">Phone</p>
+                    <p className="mt-1 text-[14px] text-white">
+                      {formatPhoneDisplay(venuePhone)}
+                    </p>
+                    <CallButton phone={venuePhone} label="Call venue" className="mt-3" />
+                  </div>
+                ) : venuePhoneLoading ? (
+                  <p className="mt-4 text-[12px] text-white/45">Loading venue contact…</p>
+                ) : null}
               </div>
             ) : null}
 
@@ -319,7 +477,7 @@ export function HostPage() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="Date">
                 <input
-                  className="field"
+                  className="glass-input"
                   type="date"
                   value={gameDate}
                   onChange={(e) => setGameDate(e.target.value)}
@@ -327,7 +485,7 @@ export function HostPage() {
               </Field>
               <Field label="Start time">
                 <input
-                  className="field"
+                  className="glass-input"
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
@@ -356,7 +514,7 @@ export function HostPage() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="Min players">
                 <input
-                  className="field"
+                  className="glass-input"
                   type="number"
                   min={2}
                   value={minPlayers}
@@ -365,7 +523,7 @@ export function HostPage() {
               </Field>
               <Field label="Max players">
                 <input
-                  className="field"
+                  className="glass-input"
                   type="number"
                   min={minPlayers}
                   value={maxPlayers}
@@ -375,7 +533,7 @@ export function HostPage() {
             </div>
             <Field label="Expected player share (₹, optional)">
               <input
-                className="field"
+                className="glass-input"
                 inputMode="numeric"
                 value={share}
                 onChange={(e) => setShare(e.target.value)}
@@ -413,48 +571,37 @@ export function HostPage() {
         {step === 5 ? (
           <div className="space-y-6 animate-fade-up">
             <div>
-              <h2 className="display-lg">
-                Review
-              </h2>
+              <h2 className="display-lg">Review</h2>
               <p className="mt-1 text-[14px] text-white/45">
-                Confirm details and publish.
+                Confirm venue booking and publish when ready.
               </p>
             </div>
 
-            <div className="glass p-4 space-y-3">
-              <p className="label-caps">{selectedSport?.name}</p>
-              <p className="text-[22px] font-semibold tracking-tight text-white">
-                {title}
+            {!hostReady ? (
+              <ProfileCompletionGate requiredFor="host" />
+            ) : null}
+
+            {bookingResetNotice ? (
+              <p className="glass-status-warning rounded-[8px] px-4 py-3 text-[13px] text-status-warning">
+                Venue confirmation reset — game details changed. Confirm booking again before publishing.
               </p>
-              <div className="grid grid-cols-2 gap-3 border-t border-white/10 pt-3 text-[13px]">
-                <div>
-                  <p className="label-caps">Venue</p>
-                  <p className="mt-1 text-white">{selectedVenue?.name ?? '—'}</p>
-                </div>
-                <div>
-                  <p className="label-caps">When</p>
-                  <p className="mt-1 text-white">
-                    {gameDate} · {startTime}
-                  </p>
-                </div>
-                <div>
-                  <p className="label-caps">Players</p>
-                  <p className="mt-1 text-white">
-                    {minPlayers}–{maxPlayers}
-                  </p>
-                </div>
-                <div>
-                  <p className="label-caps">Share</p>
-                  <p className="mt-1 text-white">
-                    {share ? `₹${share}/person` : 'Free'}
-                  </p>
-                </div>
-              </div>
-            </div>
+            ) : null}
+
+            <HostPublishChecklist
+              items={checklistItems}
+              venuePhone={venuePhone}
+              showBookingPanel
+              venueName={selectedVenue?.name}
+              gameDate={gameDate}
+              startTime={`${startTime}:00`.slice(0, 8)}
+              endTime={endTime}
+              bookingCheckbox={bookingCheckbox}
+              onBookingCheckboxChange={setBookingCheckbox}
+            />
 
             <Field label="Notes for players">
               <textarea
-                className="field min-h-24 py-3"
+                className="glass-input"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Kits, skill level, parking…"
@@ -469,17 +616,23 @@ export function HostPage() {
                 className="mt-1 h-4 w-4 accent-white"
               />
               <span className="text-[14px] leading-relaxed text-white">
-                I confirm I am responsible for selecting, booking, and paying the
-                venue. PLAYR does not book or pay venues.
+                I confirm that I contacted the venue and they confirmed this slot.
+                PLAYR does not automatically reserve the venue.
               </span>
             </label>
 
             <PrimaryButton
               fullWidth
-              disabled={!hostConfirm || busy}
+              disabled={
+                !hostReady ||
+                !hostConfirm ||
+                !bookingCheckbox ||
+                !venuePhone ||
+                busy
+              }
               onClick={() => void publish()}
             >
-              {busy ? 'Publishing…' : 'Publish game'}
+              {busy ? 'Publishing…' : 'Publish game →'}
             </PrimaryButton>
             <SecondaryButton fullWidth onClick={() => navigate('/groups/new')}>
               Or create a recurring group
@@ -487,23 +640,6 @@ export function HostPage() {
           </div>
         ) : null}
       </div>
-
-      <style>{`
-        .field {
-          width: 100%;
-          min-height: 3rem;
-          border-radius: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.045);
-          padding: 0 1rem;
-          outline: none;
-          color: #fff;
-        }
-        .field:focus {
-          border-color: rgba(255, 255, 255, 0.45);
-          background: rgba(255, 255, 255, 0.07);
-        }
-      `}</style>
     </div>
   )
 }

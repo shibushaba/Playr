@@ -12,6 +12,39 @@ select public.run_playr_engine_tick();
 
 Scheduled via `pg_cron` as job `playr-engine-tick` every minute when available.
 
+### Deployment verification
+
+After applying migrations, confirm the cron job in SQL Editor (as superuser / dashboard):
+
+```sql
+-- Exactly one job named playr-engine-tick
+select jobid, jobname, schedule, command, active
+from cron.job
+where jobname = 'playr-engine-tick';
+
+-- Expected: schedule */1 * * * *, command select public.run_playr_engine_tick();
+```
+
+If no row is returned, enable **pg_cron** under Database → Extensions and re-run migration `20260327000010_game_engine.sql`, or schedule manually:
+
+```sql
+select cron.schedule(
+  'playr-engine-tick',
+  '* * * * *',
+  $$select public.run_playr_engine_tick();$$
+);
+```
+
+Idempotency smoke test (safe on staging):
+
+```sql
+select public.run_playr_engine_tick();
+select public.run_playr_engine_tick();
+-- Second run should not duplicate notifications or recurring games.
+```
+
+See also `supabase/PILOT_VERIFY.sql` and `supabase/VALIDATION_GAME_ENGINE.sql`.
+
 ### If pg_cron is unavailable
 
 In Supabase Dashboard → Database → Extensions: enable **pg_cron**.

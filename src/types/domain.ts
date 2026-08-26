@@ -81,8 +81,11 @@ export interface GameListItem {
   visibility: GameVisibility
   status: UiGameStatus
   dbStatus: DbGameStatus
+  venueBookingConfirmedAt: string | null
   distanceMeters?: number
   distanceLabel?: string
+  /** Present when the list query includes the viewer's row (e.g. My Games). */
+  myParticipation?: Pick<GameParticipant, 'role' | 'status'> | null
 }
 
 export interface GameParticipant {
@@ -185,7 +188,7 @@ export function deriveUiStatus(
   if (dbStatus === 'completed') return 'completed'
   if (dbStatus === 'confirmed') return 'confirmed'
   if (confirmedCount >= maxPlayers) return 'full'
-  if (confirmedCount / maxPlayers >= 0.7) return 'filling'
+  if (confirmedCount / maxPlayers >= 0.61) return 'filling'
   return 'open'
 }
 

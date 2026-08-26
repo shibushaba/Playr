@@ -1,8 +1,10 @@
-import { Search } from 'lucide-react'
+import { Link2, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import {
   areaNameFromLabel,
+  mapUrlParseHint,
   osmEmbedUrl,
+  placeFromMapUrl,
   searchPlaces,
   type PlaceSuggestion,
 } from '@/lib/maps'
@@ -22,6 +24,9 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
   const [selected, setSelected] = useState<PlaceSuggestion | null>(confirmed)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPasteLink, setShowPasteLink] = useState(false)
+  const [mapLink, setMapLink] = useState('')
+  const [linkName, setLinkName] = useState('')
 
   const areaHint = useMemo(
     () => areaNameFromLabel(location?.label),
@@ -58,25 +63,51 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
       if (list.length === 0) {
         setError(
           areaHint
-            ? `No places found near ${areaHint}. Try adding the area name to your search.`
-            : 'No places found nearby. Try a more specific search.',
+            ? `No places found near ${areaHint}. Paste a map link below, or try a more specific search.`
+            : 'No places found nearby. Paste a map link below, or try a more specific search.',
         )
+        setShowPasteLink(true)
       }
     } catch {
-      setError("Couldn't search places. Try again.")
+      setError("Couldn't search places. Try again or paste a map link below.")
+      setShowPasteLink(true)
     } finally {
       setBusy(false)
     }
   }
+
+  function applyMapLink() {
+    const url = mapLink.trim()
+    if (!url) {
+      setError('Paste a Google Maps link first.')
+      return
+    }
+
+    const place = placeFromMapUrl(url, linkName.trim() || query.trim())
+    if (!place) {
+      setError(mapUrlParseHint())
+      return
+    }
+
+    setError(null)
+    setSelected(place)
+    setResults([])
+  }
+
+  function confirmSelection(place: PlaceSuggestion) {
+    setSelected(place)
+    onConfirm(place)
+  }
+
+  const preview = selected ?? confirmed
 
   return (
     <div className="space-y-4">
       <div>
         <p className="label-caps">Location</p>
         <p className="mt-1 text-[13px] text-white/45">
-          Search and select the exact venue on the map. We search nearby turfs
-          and grounds
-          {areaHint ? ` around ${areaHint}` : location ? ' near you' : ''}.
+          Search and select the exact venue on the map, or paste a map link if
+          it is not listed.
         </p>
       </div>
 
@@ -155,7 +186,57 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
         </ul>
       ) : null}
 
-      {selected ? (
+      <div className="glass space-y-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="label-caps">Or paste map link</p>
+            <p className="mt-1 text-[12px] text-white/45">
+              Open the venue in Google Maps → Share → Copy link, then paste it
+              here.
+            </p>
+          </div>
+          {!showPasteLink ? (
+            <SecondaryButton
+              type="button"
+              className="shrink-0 px-3 py-2 text-[11px]"
+              onClick={() => setShowPasteLink(true)}
+            >
+              Paste link
+            </SecondaryButton>
+          ) : null}
+        </div>
+
+        {showPasteLink ? (
+          <div className="space-y-3">
+            <label className="glass-input flex min-h-12 items-center gap-2 !px-3">
+              <Link2 className="h-4 w-4 shrink-0 text-white/45" />
+              <input
+                value={mapLink}
+                onChange={(e) => setMapLink(e.target.value)}
+                placeholder="https://maps.google.com/..."
+                className="w-full bg-transparent text-[14px] text-white outline-none placeholder:text-white/35"
+                aria-label="Map link"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45">
+                Venue name (optional)
+              </span>
+              <input
+                value={linkName}
+                onChange={(e) => setLinkName(e.target.value)}
+                placeholder="e.g. Soccer 7 Arena"
+                className="glass-input min-h-12 w-full px-3 text-[14px] text-white outline-none placeholder:text-white/35"
+              />
+            </label>
+            <PrimaryButton type="button" fullWidth onClick={applyMapLink}>
+              Use this map link
+            </PrimaryButton>
+          </div>
+        ) : null}
+      </div>
+
+      {preview && selected ? (
         <div className="glass overflow-hidden">
           <iframe
             title="Map preview"
@@ -167,14 +248,14 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
           <div className="space-y-2 border-t border-white/10 p-4">
             <p className="text-[14px] font-medium text-white">{selected.name}</p>
             <p className="text-[13px] text-white/45">
-              {[selected.address, selected.distanceLabel]
+              {[selected.address, selected.distanceLabel, selected.provider === 'manual' ? 'From map link' : null]
                 .filter(Boolean)
                 .join(' · ')}
             </p>
             <SecondaryButton
               type="button"
               fullWidth
-              onClick={() => onConfirm(selected)}
+              onClick={() => confirmSelection(selected)}
             >
               Use this location
             </SecondaryButton>
@@ -187,7 +268,9 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
           <p className="label-caps">Confirmed location</p>
           <p className="mt-2 text-[15px] font-medium text-white">{confirmed.name}</p>
           <p className="mt-1 text-[13px] text-white/45">
-            {[confirmed.city, confirmed.address].filter(Boolean).join(' · ')}
+            {[confirmed.city, confirmed.address, confirmed.provider === 'manual' ? 'From map link' : null]
+              .filter(Boolean)
+              .join(' · ')}
           </p>
         </div>
       ) : null}

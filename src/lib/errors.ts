@@ -31,6 +31,7 @@ const CODE_MESSAGES: Record<string, string> = {
   ALREADY_CHECKED_IN: 'Already checked in.',
   CHECKIN_TOO_EARLY: 'Check-in opens 30 minutes before the game.',
   CHECKIN_TOO_LATE: 'Check-in window has closed.',
+  TOO_FAR: "You're too far from the venue to check in.",
   LOCATION_REQUIRED: "Couldn't verify your location.",
   VENUE_LOCATION_MISSING: 'Venue location is missing for check-in.',
   ATTENDANCE_UNAVAILABLE: 'Attendance updates are not available yet.',
@@ -56,6 +57,20 @@ const CODE_MESSAGES: Record<string, string> = {
   INVALID_COORDINATES: 'Map coordinates are invalid.',
   INVALID_VENUE: 'Check the venue details and try again.',
   SIMILAR_VENUE_EXISTS: 'A similar venue already exists nearby.',
+  PHONE_VERIFICATION_REQUIRED:
+    'Add a phone number in your profile if the host needs to reach you.',
+  EMAIL_VERIFICATION_REQUIRED: 'Confirm your email before hosting.',
+  PROFILE_INCOMPLETE: 'Add your name in your profile to continue.',
+  INVALID_USERNAME: 'Username must be 3–30 letters, numbers, or underscores.',
+  USERNAME_TAKEN: 'That username is taken.',
+  VENUE_BOOKING_REQUIRED: 'Confirm venue booking before publishing.',
+  VENUE_CONTACT_REQUIRED: 'Venue phone is required.',
+  VENUE_REQUIRED: 'Select a venue first.',
+  INVALID_PHONE: 'Enter a valid phone number.',
+  INVALID_CODE: 'That code is incorrect.',
+  CODE_EXPIRED: 'That code expired. Request a new one.',
+  TOO_MANY_ATTEMPTS: 'Too many attempts. Request a new code.',
+  USE_PUBLISH_RPC: 'Use publish to open the game.',
 }
 
 const KNOWN_CODES = Object.keys(CODE_MESSAGES)
@@ -75,15 +90,7 @@ export function parsePlayrRpcError(error: unknown, fallback: string): AppError {
 
   const tooFar = raw.match(/TOO_FAR:(\d+)/)
   if (tooFar) {
-    const meters = Number(tooFar[1])
-    const label =
-      meters >= 1000
-        ? `${(meters / 1000).toFixed(1)} km`
-        : `${meters} m`
-    return new AppError(
-      `You're about ${label} from the venue. Move closer to check in.`,
-      'TOO_FAR',
-    )
+    return new AppError(CODE_MESSAGES.TOO_FAR, 'TOO_FAR')
   }
 
   const code = KNOWN_CODES.find(

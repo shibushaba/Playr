@@ -2,6 +2,8 @@ import { AppError, logDevError, parsePlayrRpcError } from '@/lib/errors'
 import { supabase } from '@/lib/supabase'
 import type {
   DbGameStatus,
+  GamePlayerRole,
+  GamePlayerStatus,
   GameVisibility,
   Tables,
   TablesInsert,
@@ -64,6 +66,7 @@ function mapListItem(
   row: GameJoin,
   confirmedCount: number,
   waitlistCount: number,
+  myParticipation?: Pick<GameParticipant, 'role' | 'status'> | null,
 ): GameListItem {
   const startsAt = combineGameStart(row.game_date, row.start_time)
   return {
@@ -88,7 +91,37 @@ function mapListItem(
     visibility: row.visibility,
     status: deriveUiStatus(row.status, confirmedCount, row.maximum_players),
     dbStatus: row.status,
+    venueBookingConfirmedAt: row.venue_booking_confirmed_at ?? null,
+    myParticipation: myParticipation ?? null,
   }
+}
+
+async function participationForGames(
+  userId: string,
+  gameIds: string[],
+): Promise<Map<string, Pick<GameParticipant, 'role' | 'status'>>> {
+  const map = new Map<string, Pick<GameParticipant, 'role' | 'status'>>()
+  if (gameIds.length === 0) return map
+
+  const { data, error } = await supabase
+    .from('game_players')
+    .select('game_id, role, status')
+    .eq('user_id', userId)
+    .in('game_id', gameIds)
+    .in('status', ['confirmed', 'reserved', 'waitlisted', 'attended'])
+
+  if (error) {
+    logDevError('participationForGames', error)
+    return map
+  }
+
+  for (const row of data ?? []) {
+    map.set(row.game_id, {
+      role: row.role as GamePlayerRole,
+      status: row.status as GamePlayerStatus,
+    })
+  }
+  return map
 }
 
 async function countsForGames(
@@ -140,19 +173,30 @@ async function countsForGames(
 export const gameSelect = `
   *,
   sports ( id, name, slug, icon ),
-  venues ( * ),
+  venues ( id, name, description, address, city, state, country, latitude, longitude, map_url, sports, facilities, opening_hours, website, image_url, status, created_by, claimed_by, created_at, updated_at ),
   profiles!host_id ( id, display_name, username, avatar_url, bio )
 `
+
+export const groupSelect =
+  '*, sports ( id, name, slug, icon ), venues ( id, name, description, address, city, state, country, latitude, longitude, map_url, sports, facilities, opening_hours, website, image_url, status, created_by, claimed_by, created_at, updated_at )'
 
 /** Map raw game join rows (with counts) into list items — shared with groups service. */
 export async function mapGamesToListItems(
   rows: unknown[],
+  options?: { userId?: string },
 ): Promise<GameListItem[]> {
   const typed = rows as GameJoin[]
   const counts = await countsForGames(typed.map((r) => r.id))
+  const participation = options?.userId
+    ? await participationForGames(
+        options.userId,
+        typed.map((r) => r.id),
+      )
+    : new Map<string, Pick<GameParticipant, 'role' | 'status'>>()
+
   return typed.map((row) => {
     const c = counts.get(row.id) ?? { confirmed: 0, waitlist: 0 }
-    return mapListItem(row, c.confirmed, c.waitlist)
+    return mapListItem(row, c.confirmed, c.waitlist, participation.get(row.id) ?? null)
   })
 }
 
@@ -184,9 +228,19 @@ export async function listDiscoverableGames(options?: {
   }
 
   const counts = await countsForGames(rows.map((r) => r.id))
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const participation = user
+    ? await participationForGames(
+        user.id,
+        rows.map((r) => r.id),
+      )
+    : new Map<string, Pick<GameParticipant, 'role' | 'status'>>()
+
   return rows.map((row) => {
     const c = counts.get(row.id) ?? { confirmed: 0, waitlist: 0 }
-    return mapListItem(row, c.confirmed, c.waitlist)
+    return mapListItem(row, c.confirmed, c.waitlist, participation.get(row.id) ?? null)
   })
 }
 
@@ -268,13 +322,24 @@ export async function getGameDetail(gameId: string): Promise<GameDetail | null> 
 export async function listMyGames(userId: string): Promise<GameListItem[]> {
   const { data: participation, error: partError } = await supabase
     .from('game_players')
-    .select('game_id')
+    .select('game_id, role, status')
     .eq('user_id', userId)
     .in('status', ['confirmed', 'reserved', 'waitlisted', 'attended'])
 
   if (partError) {
     logDevError('listMyGames.participation', partError)
     throw new AppError("Couldn't load your games. Try again.")
+  }
+
+  const participationByGame = new Map<
+    string,
+    Pick<GameParticipant, 'role' | 'status'>
+  >()
+  for (const row of participation ?? []) {
+    participationByGame.set(row.game_id, {
+      role: row.role as GamePlayerRole,
+      status: row.status as GamePlayerStatus,
+    })
   }
 
   const ids = new Set((participation ?? []).map((p) => p.game_id))
@@ -308,7 +373,12 @@ export async function listMyGames(userId: string): Promise<GameListItem[]> {
   const counts = await countsForGames(rows.map((r) => r.id))
   return rows.map((row) => {
     const c = counts.get(row.id) ?? { confirmed: 0, waitlist: 0 }
-    return mapListItem(row, c.confirmed, c.waitlist)
+    return mapListItem(
+      row,
+      c.confirmed,
+      c.waitlist,
+      participationByGame.get(row.id) ?? null,
+    )
   })
 }
 
@@ -351,7 +421,7 @@ export async function createGame(input: {
     maximum_players: input.maximumPlayers,
     player_share: input.playerShare ?? null,
     visibility: input.visibility ?? 'public',
-    status: 'open',
+    status: 'draft',
     venue_confirmation: 'pending',
     group_id: input.groupId ?? null,
   }
@@ -364,7 +434,7 @@ export async function createGame(input: {
 
   if (error || !data) {
     logDevError('createGame', error)
-    throw new AppError("Couldn't create game. Try again.")
+    throw parsePlayrRpcError(error, "Couldn't create game. Try again.")
   }
 
   const row = data as unknown as GameJoin
