@@ -2,6 +2,7 @@ import { Header } from '@/components/layout/Header'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { useAuth } from '@/contexts/AuthContext'
 import { isSupabaseConfigured } from '@/lib/supabase'
+import { Eye, EyeOff } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -23,6 +24,7 @@ export function AuthPage() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -123,15 +125,29 @@ export function AuthPage() {
             />
           </Field>
           <Field label="Password">
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="field"
-              placeholder="••••••••"
-              type="password"
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              required
-            />
+            <div className="relative">
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="field field-password"
+                placeholder="••••••••"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                required
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-white/40 transition hover:text-white"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
+            </div>
           </Field>
 
           {error ? (
@@ -176,6 +192,9 @@ export function AuthPage() {
         .field:focus {
           border-color: rgba(255, 255, 255, 0.45);
           background: rgba(255, 255, 255, 0.07);
+        }
+        .field-password {
+          padding-right: 2.75rem;
         }
       `}</style>
     </div>

@@ -1,7 +1,22 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
-const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim()
+/** Strip trailing slashes and accidental `/rest/v1` (common Vercel misconfiguration). */
+function normalizeSupabaseUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  let u = raw.trim().replace(/\/+$/, '')
+  if (/\/rest\/v1$/i.test(u)) {
+    u = u.replace(/\/rest\/v1$/i, '')
+    if (import.meta.env.DEV) {
+      console.warn(
+        '[PLAYR] VITE_SUPABASE_URL should be the project root (https://xxx.supabase.co), not /rest/v1 — auto-corrected.',
+      )
+    }
+  }
+  return u
+}
+
+const url = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL as string | undefined)
 const publishableKey = (
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   import.meta.env.VITE_SUPABASE_ANON_KEY

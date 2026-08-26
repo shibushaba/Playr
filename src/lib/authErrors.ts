@@ -42,6 +42,13 @@ export function authErrorMessage(
   }
 
   if (
+    msg.includes('invalid path specified') ||
+    code === 'pgrst125'
+  ) {
+    return 'App configuration error (wrong Supabase URL). The host should set VITE_SUPABASE_URL to https://your-project.supabase.co — not /rest/v1.'
+  }
+
+  if (
     msg.includes('invalid api key') ||
     msg.includes('apikey') ||
     code === '401'
