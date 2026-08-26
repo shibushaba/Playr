@@ -1,5 +1,6 @@
 import { ensureProfileAfterSignup, getMyProfile } from '@/services/profiles'
-import { supabase } from '@/lib/supabase'
+import { authErrorMessage } from '@/lib/authErrors'
+import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/database'
 import type { Session, User } from '@supabase/supabase-js'
 import {
@@ -81,26 +82,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session?.user?.id, refreshProfile])
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error(
+        'Server not connected. The live app is missing Supabase settings — redeploy Vercel after adding VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.',
+      )
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      const msg = (error.message || '').toLowerCase()
-      if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
-        throw new Error('Invalid email or password.')
-      }
-      if (msg.includes('email not confirmed') || msg.includes('not confirmed')) {
-        throw new Error(
-          'Confirm your email before signing in, or ask the host to enable auto-confirm for this pilot.',
-        )
-      }
-      if (msg.includes('rate limit') || msg.includes('too many')) {
-        throw new Error('Too many attempts. Wait a minute and try again.')
-      }
-      throw new Error("Couldn't sign in. Try again.")
+      throw new Error(authErrorMessage(error, "Couldn't sign in. Try again."))
     }
   }, [])
 
   const signUp = useCallback(
     async (input: { email: string; password: string; displayName: string }) => {
+      if (!isSupabaseConfigured) {
+        throw new Error(
+          'Server not connected. The live app is missing Supabase settings — redeploy Vercel after adding env vars.',
+        )
+      }
       const { data, error } = await supabase.auth.signUp({
         email: input.email,
         password: input.password,
@@ -112,31 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       })
       if (error) {
-        const msg = (error.message || '').toLowerCase()
-        const code = (error as { code?: string }).code?.toLowerCase() ?? ''
-        if (
-          msg.includes('already registered') ||
-          msg.includes('already been registered') ||
-          code.includes('user_already_exists')
-        ) {
-          throw new Error('An account with that email already exists. Sign in instead.')
-        }
-        if (msg.includes('rate limit') || code.includes('over_email_send_rate_limit')) {
-          throw new Error(
-            'Sign-up is briefly rate-limited. Wait a minute, then try again (or sign in if you already registered).',
-          )
-        }
-        if (msg.includes('password') && (msg.includes('least') || msg.includes('weak') || msg.includes('short'))) {
-          throw new Error('Use a stronger password (at least 6 characters).')
-        }
-        if (
-          msg.includes('unable to validate email') ||
-          msg.includes('invalid email') ||
-          code.includes('email_address_invalid')
-        ) {
-          throw new Error('Enter a valid email address.')
-        }
-        throw new Error("Couldn't create account. Try again.")
+        throw new Error(authErrorMessage(error, "Couldn't create account. Try again."))
       }
       // Email-confirm projects return a user with no session until confirmed.
       if (data.user && !data.session) {

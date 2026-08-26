@@ -1,12 +1,27 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as
-  | string
-  | undefined
+const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim()
+const publishableKey = (
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+)?.trim() as string | undefined
 
-export const isSupabaseConfigured = Boolean(url && publishableKey)
+const PLACEHOLDER_URLS = ['example.supabase.co', 'YOUR_PROJECT']
+const PLACEHOLDER_KEYS = ['public-anon-key', 'your_publishable', 'your_anon']
+
+function looksLikePlaceholder(value: string | undefined, markers: string[]): boolean {
+  if (!value) return true
+  const lower = value.toLowerCase()
+  return markers.some((m) => lower.includes(m.toLowerCase()))
+}
+
+export const isSupabaseConfigured = Boolean(
+  url &&
+    publishableKey &&
+    !looksLikePlaceholder(url, PLACEHOLDER_URLS) &&
+    !looksLikePlaceholder(publishableKey, PLACEHOLDER_KEYS),
+)
 
 if (!isSupabaseConfigured) {
   const msg =

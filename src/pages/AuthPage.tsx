@@ -1,6 +1,7 @@
 import { Header } from '@/components/layout/Header'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { useAuth } from '@/contexts/AuthContext'
+import { isSupabaseConfigured } from '@/lib/supabase'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -29,6 +30,12 @@ export function AuthPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!isSupabaseConfigured) {
+      setError(
+        'This deployment is not connected to Supabase. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Vercel, then redeploy.',
+      )
+      return
+    }
     setBusy(true)
     try {
       if (mode === 'signin') {
@@ -66,6 +73,21 @@ export function AuthPage() {
           Sign in with email to join games, host, and keep your reliability
           history. PLAYR never handles payments.
         </p>
+
+        {!isSupabaseConfigured ? (
+          <div className="glass-status-warning mt-6 rounded-[8px] p-4">
+            <p className="text-[13px] font-semibold text-status-warning">
+              Server not connected
+            </p>
+            <p className="mt-2 text-[13px] leading-relaxed text-white/70">
+              Supabase environment variables are missing or still set to
+              placeholders. In Vercel → Settings → Environment Variables, add{' '}
+              <code className="text-white">VITE_SUPABASE_URL</code> and{' '}
+              <code className="text-white">VITE_SUPABASE_PUBLISHABLE_KEY</code>,
+              then redeploy (required — Vite bakes env at build time).
+            </p>
+          </div>
+        ) : null}
 
         <div className="glass mt-8 flex overflow-hidden">
           <ModeTab active={mode === 'signin'} onClick={() => setMode('signin')}>
@@ -118,7 +140,7 @@ export function AuthPage() {
             </p>
           ) : null}
 
-          <PrimaryButton type="submit" fullWidth disabled={busy}>
+          <PrimaryButton type="submit" fullWidth disabled={busy || !isSupabaseConfigured}>
             {busy ? 'Please wait…' : 'Continue'}
           </PrimaryButton>
           <PrimaryButton

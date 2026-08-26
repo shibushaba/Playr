@@ -39,10 +39,10 @@ Never add the Supabase **service_role** key to Vercel — it belongs only on the
 
 In Supabase Dashboard → **Authentication** → **URL Configuration**:
 
-- **Site URL**: `https://YOUR_APP.vercel.app`
+- **Site URL**: `https://playr-nine.vercel.app`
 - **Redirect URLs** (add all that apply):
-  - `https://YOUR_APP.vercel.app/**`
-  - `https://YOUR_APP.vercel.app/auth`
+  - `https://playr-nine.vercel.app`
+  - `https://playr-nine.vercel.app/auth`
   - `http://localhost:5173/**` (local dev)
 
 Email confirmation links use `emailRedirectTo` → `/auth` on your deployed domain.
@@ -86,7 +86,8 @@ Then update Supabase **Site URL** and **Redirect URLs** to the custom domain, an
 
 | Issue | Fix |
 | --- | --- |
-| Blank app / "Supabase is not configured" | Set `VITE_*` env vars on Vercel and redeploy |
+| Blank app / "Supabase is not configured" | Set `VITE_*` env vars on Vercel and **redeploy** (env is baked at build time) |
+| Sign in fails with generic error | Same — redeploy after env vars; check Supabase anon key is correct |
 | 404 on refresh at `/games/...` | Ensure `vercel.json` rewrites are committed |
 | Auth email link goes to localhost | Update Supabase Site URL to production domain |
 | Maps search empty | Add `VITE_MAP_PROVIDER_KEY` + domain restriction |
