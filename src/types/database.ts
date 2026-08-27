@@ -600,6 +600,33 @@ export interface Database {
         }
         Relationships: []
       }
+      app_feedback: {
+        Row: {
+          id: string
+          user_id: string
+          kind: string
+          message: string
+          page_path: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          kind: string
+          message: string
+          page_path?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          kind?: string
+          message?: string
+          page_path?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       user_blocks: {
         Row: {
           id: string
@@ -1027,6 +1054,14 @@ export interface Database {
           p_message_id?: string | null
         }
         Returns: Database['public']['Tables']['reports']['Row']
+      }
+      submit_app_feedback: {
+        Args: {
+          p_kind: string
+          p_message: string
+          p_page_path?: string | null
+        }
+        Returns: Database['public']['Tables']['app_feedback']['Row']
       }
       get_player_reliability: {
         Args: { p_user_id: string }

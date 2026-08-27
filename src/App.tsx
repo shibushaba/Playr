@@ -1,5 +1,7 @@
 import { LoadingBall } from '@/components/motion/LoadingBall'
+import { InstallPrompt } from '@/components/pwa/InstallPrompt'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { PwaInstallProvider } from '@/contexts/PwaInstallContext'
 import { LocationProvider } from '@/contexts/LocationContext'
 import { AppLayout } from '@/layouts/AppLayout'
 import { PublicLayout } from '@/layouts/PublicLayout'
@@ -97,47 +99,50 @@ export default function App() {
   return (
     <AuthProvider>
       <LocationProvider>
-        <BrowserRouter>
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route element={<PublicLayout />}>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/welcome" element={<WelcomePage />} />
-                <Route
-                  path="/join/game/:token"
-                  element={<JoinGameInvitePage />}
-                />
-                <Route
-                  path="/join/group/:token"
-                  element={<JoinGroupInvitePage />}
-                />
-              </Route>
+        <PwaInstallProvider>
+          <BrowserRouter>
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route element={<PublicLayout />}>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/welcome" element={<WelcomePage />} />
+                  <Route
+                    path="/join/game/:token"
+                    element={<JoinGameInvitePage />}
+                  />
+                  <Route
+                    path="/join/group/:token"
+                    element={<JoinGroupInvitePage />}
+                  />
+                </Route>
 
-              <Route element={<AppLayout />}>
-                <Route path="/home" element={<HomePage />} />
-                <Route path="/explore" element={<ExplorePage />} />
-                <Route path="/host" element={<HostPage />} />
-                <Route path="/my-games" element={<MyGamesPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/notifications" element={<NotificationsPage />} />
-                <Route path="/games/:id" element={<GameDetailsPage />} />
-                <Route path="/games/:id/join" element={<JoinGamePage />} />
-                <Route path="/venues" element={<VenueSelectPage />} />
-                <Route path="/venues/new" element={<AddVenuePage />} />
-                <Route path="/venues/:id" element={<VenueDetailsPage />} />
-                <Route path="/groups" element={<GroupsPage />} />
-                <Route path="/groups/new" element={<CreateGroupPage />} />
-                <Route path="/groups/:id" element={<GroupDetailsPage />} />
-                <Route path="/game/:id" element={<GameDetailsPage />} />
-                <Route path="/group/:id" element={<GroupDetailsPage />} />
-                <Route path="/venue/:id" element={<VenueDetailsPage />} />
-              </Route>
+                <Route element={<AppLayout />}>
+                  <Route path="/home" element={<HomePage />} />
+                  <Route path="/explore" element={<ExplorePage />} />
+                  <Route path="/host" element={<HostPage />} />
+                  <Route path="/my-games" element={<MyGamesPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/notifications" element={<NotificationsPage />} />
+                  <Route path="/games/:id" element={<GameDetailsPage />} />
+                  <Route path="/games/:id/join" element={<JoinGamePage />} />
+                  <Route path="/venues" element={<VenueSelectPage />} />
+                  <Route path="/venues/new" element={<AddVenuePage />} />
+                  <Route path="/venues/:id" element={<VenueDetailsPage />} />
+                  <Route path="/groups" element={<GroupsPage />} />
+                  <Route path="/groups/new" element={<CreateGroupPage />} />
+                  <Route path="/groups/:id" element={<GroupDetailsPage />} />
+                  <Route path="/game/:id" element={<GameDetailsPage />} />
+                  <Route path="/group/:id" element={<GroupDetailsPage />} />
+                  <Route path="/venue/:id" element={<VenueDetailsPage />} />
+                </Route>
 
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+            <InstallPrompt />
+          </BrowserRouter>
+        </PwaInstallProvider>
       </LocationProvider>
     </AuthProvider>
   )

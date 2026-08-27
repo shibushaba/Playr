@@ -1,3 +1,4 @@
+import { FeedbackSheet } from '@/components/settings/FeedbackSheet'
 import { LoadingBlock } from '@/components/motion/LoadingBlock'
 import { MotionNavRow } from '@/components/motion/MotionLink'
 import { StatusTransition } from '@/components/motion/StatusTransition'
@@ -41,6 +42,7 @@ export function ProfilePage() {
   const [photoBusy, setPhotoBusy] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveOk, setSaveOk] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -419,6 +421,20 @@ export function ProfilePage() {
           <MotionNavRow to="/notifications" label="Notifications" />
           <MotionNavRow to="/venues/new?returnTo=create-game" label="Submit a venue" />
         </div>
+
+        <section className="glass overflow-hidden">
+          <p className="label-caps px-4 pt-4">Settings</p>
+          <button
+            type="button"
+            className="motion-row flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-[14px] font-medium text-white transition hover:bg-white/[0.04]"
+            onClick={() => setFeedbackOpen(true)}
+          >
+            <span>Feedback & suggestions</span>
+            <span className="text-[12px] text-white/40">Send</span>
+          </button>
+        </section>
+
+        <FeedbackSheet open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
 
         <div className="glass-elevated p-5">
           <p className="label-caps">Host</p>
