@@ -1,3 +1,6 @@
+import { AnimatedNumber } from '@/components/motion/AnimatedNumber'
+import { AnimatedProgress } from '@/components/motion/AnimatedProgress'
+import { StatusTransition } from '@/components/motion/StatusTransition'
 import {
   getOccupancy,
   occupancyGlowStyle,
@@ -40,21 +43,25 @@ export function GameAvailability({
     : 'font-[family-name:var(--font-display)] text-[20px] font-semibold tabular-nums sm:text-[22px]'
 
   const labelRow = (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]',
-        toneClass,
-      )}
-    >
-      <span className="status-dot shrink-0" aria-hidden />
-      <span>{occupancy.label}</span>
-    </span>
+    <StatusTransition phaseKey={occupancy.state}>
+      <span
+        className={cn(
+          'inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]',
+          toneClass,
+        )}
+      >
+        <span className="status-dot shrink-0" aria-hidden />
+        <span>{occupancy.label}</span>
+      </span>
+    </StatusTransition>
   )
 
   const countRow = compact ? (
     <div className={cn('flex flex-wrap items-baseline gap-x-1.5', toneClass)}>
       <span className={countClass}>
-        {occupancy.currentPlayers} / {occupancy.maximumPlayers}
+        <AnimatedNumber value={occupancy.currentPlayers} />
+        {' / '}
+        <AnimatedNumber value={occupancy.maximumPlayers} />
       </span>
       <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-80">
         players
@@ -62,7 +69,9 @@ export function GameAvailability({
     </div>
   ) : (
     <p className={cn(countClass, toneClass)}>
-      {occupancy.currentPlayers} / {occupancy.maximumPlayers}
+      <AnimatedNumber value={occupancy.currentPlayers} />
+      {' / '}
+      <AnimatedNumber value={occupancy.maximumPlayers} />
       <span className="sr-only"> players</span>
     </p>
   )
@@ -82,25 +91,20 @@ export function GameAvailability({
       )}
 
       {occupancy.spotsLeftHint ? (
-        <p className={cn('mt-1 text-[12px] font-medium', toneClass)}>
-          {occupancy.spotsLeftHint}
-        </p>
+        <StatusTransition phaseKey={occupancy.spotsLeftHint}>
+          <p className={cn('mt-1 text-[12px] font-medium', toneClass)}>
+            {occupancy.spotsLeftHint}
+          </p>
+        </StatusTransition>
       ) : null}
 
       {showProgress ? (
-        <div
-          className={cn('occupancy-track', compact ? 'mt-1.5' : 'mt-2')}
-          role="progressbar"
-          aria-valuenow={occupancy.percentage}
-          aria-valuemin={0}
-          aria-valuemax={100}
+        <AnimatedProgress
+          className={compact ? 'mt-1.5' : 'mt-2'}
+          value={occupancy.percentage}
+          fillClassName={progressClass}
           aria-label={`${occupancy.currentPlayers} of ${occupancy.maximumPlayers} players — ${occupancy.label}`}
-        >
-          <div
-            className={cn('occupancy-fill', progressClass)}
-            style={{ width: `${occupancy.percentage}%` }}
-          />
-        </div>
+        />
       ) : null}
     </div>
   )
@@ -140,7 +144,7 @@ export function ParticipantStatus({
 export function CardSemanticGlow({ state }: { state: OccupancyState }) {
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-0"
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]"
       style={occupancyGlowStyle(state)}
       aria-hidden
     />

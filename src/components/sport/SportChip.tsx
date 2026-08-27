@@ -38,10 +38,8 @@ export function SportChip({ sport, selected, onClick, tile }: Props) {
         onClick={onClick}
         aria-pressed={selected}
         className={cn(
-          'glass flex min-w-[88px] flex-col items-center gap-2 px-3 py-3 transition duration-200',
-          selected
-            ? 'border-white/30 bg-white/[0.09] shadow-[0_12px_40px_rgba(0,0,0,0.3),inset_0_0_20px_rgba(255,255,255,0.04)]'
-            : 'hover:border-white/18',
+          'motion-chip motion-btn-flat sport-tile-chip flex min-w-[88px] shrink-0 flex-col items-center gap-2 px-3 py-3',
+          selected && 'sport-tile-chip--active',
         )}
       >
         <Icon className="h-5 w-5 text-white" strokeWidth={1.5} />
@@ -58,10 +56,10 @@ export function SportChip({ sport, selected, onClick, tile }: Props) {
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        'glass inline-flex min-h-10 shrink-0 items-center gap-2 px-4 text-[11px] font-semibold uppercase tracking-[0.08em] transition duration-200',
+        'motion-btn sport-chip-inline inline-flex min-h-10 shrink-0 items-center gap-2 px-4 text-[11px] font-semibold uppercase tracking-[0.08em]',
         selected
-          ? 'border-white/30 bg-white/[0.09] text-white'
-          : 'text-white/60 hover:border-white/20 hover:text-white',
+          ? 'sport-tile-chip--active text-white'
+          : 'text-white/60 hover:text-white',
       )}
     >
       {sport.id !== 'all' ? (

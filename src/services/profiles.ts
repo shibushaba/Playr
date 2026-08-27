@@ -4,18 +4,63 @@ import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/database'
 import type { PublicProfile } from '@/types/domain'
 import { toPublicProfile } from '@/types/domain'
+import type { User } from '@supabase/supabase-js'
 
 const AVATAR_MAX_PX = 512
 const AVATAR_JPEG_QUALITY = 0.86
 const AVATAR_INPUT_MAX_BYTES = 8 * 1024 * 1024
 
-export async function getMyProfile(): Promise<Tables<'profiles'> | null> {
-  const { data, error } = await supabase.rpc('get_my_profile')
-  if (error) {
-    logDevError('getMyProfile', error)
-    throw new AppError("Couldn't load your profile. Try again.")
+/** Columns readable without the get_my_profile RPC (phone + home_* excluded by grants). */
+const PROFILE_FALLBACK_SELECT =
+  'id, display_name, username, avatar_url, bio, is_active, created_at, updated_at'
+
+function buildProfileRow(
+  base: Partial<Tables<'profiles'>> & { id: string },
+  user: User,
+): Tables<'profiles'> {
+  const now = new Date().toISOString()
+  return {
+    id: base.id,
+    display_name: base.display_name ?? null,
+    username: base.username ?? null,
+    avatar_url: base.avatar_url ?? null,
+    bio: base.bio ?? null,
+    phone: base.phone ?? null,
+    phone_verified_at: base.phone_verified_at ?? null,
+    email_verified_at: base.email_verified_at ?? user.email_confirmed_at ?? null,
+    home_latitude: base.home_latitude ?? null,
+    home_longitude: base.home_longitude ?? null,
+    is_active: base.is_active ?? true,
+    created_at: base.created_at ?? now,
+    updated_at: base.updated_at ?? now,
   }
-  return data
+}
+
+async function fetchMyProfileFallback(user: User): Promise<Tables<'profiles'> | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(PROFILE_FALLBACK_SELECT)
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (error) {
+    logDevError('getMyProfile fallback', error)
+    return null
+  }
+  if (!data) return null
+  return buildProfileRow(data, user)
+}
+
+export async function getMyProfile(): Promise<Tables<'profiles'> | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data, error } = await supabase.rpc('get_my_profile')
+  if (!error && data) return data
+  if (error) logDevError('getMyProfile', error)
+  return fetchMyProfileFallback(user)
 }
 
 export async function getPublicProfile(userId: string): Promise<PublicProfile | null> {
@@ -33,10 +78,49 @@ export async function getPublicProfile(userId: string): Promise<PublicProfile | 
   return toPublicProfile(data)
 }
 
+/** Create the profile row when missing (e.g. auth trigger failed). */
+export async function ensureMyProfile(): Promise<Tables<'profiles'>> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new AppError('Please sign in.')
+
+  const existing = await getMyProfile()
+  if (existing) return existing
+
+  const { data: rpcProfile, error: rpcError } = await supabase.rpc('ensure_my_profile')
+  if (!rpcError && rpcProfile) return rpcProfile
+  if (rpcError) logDevError('ensureMyProfile rpc', rpcError)
+
+  const meta = user.user_metadata ?? {}
+  const displayName =
+    (typeof meta.display_name === 'string' && meta.display_name.trim()) ||
+    (typeof meta.full_name === 'string' && meta.full_name.trim()) ||
+    null
+
+  const { error: insertError } = await supabase.from('profiles').insert({
+    id: user.id,
+    display_name: displayName,
+    is_active: true,
+  })
+
+  if (insertError && insertError.code !== '23505') {
+    logDevError('ensureMyProfile insert', insertError)
+    throw new AppError("Couldn't set up your profile. Try again.")
+  }
+
+  const profile = await getMyProfile()
+  if (profile) return profile
+
+  return buildProfileRow({ id: user.id, display_name: displayName }, user)
+}
+
 export async function updateMyProfile(input: {
   displayName?: string
   username?: string | null
+  /** undefined = leave unchanged, null = clear, string = set */
   phone?: string | null
+  /** Pass empty string to clear bio; undefined to leave unchanged. */
   bio?: string | null
   avatarUrl?: string | null
 }): Promise<Tables<'profiles'>> {
@@ -45,12 +129,16 @@ export async function updateMyProfile(input: {
   } = await supabase.auth.getUser()
   if (!user) throw new AppError('Please sign in.')
 
+  await ensureMyProfile()
+
   let phone: string | null | undefined = input.phone
-  if (typeof phone === 'string' && phone.trim()) {
+  if (phone === undefined) {
+    // Leave phone unchanged — do not send clear/set flags.
+  } else if (typeof phone === 'string' && phone.trim()) {
     const e164 = normalizePhoneE164(phone)
     if (!e164) throw new AppError('Enter a valid phone number.', 'INVALID_PHONE')
     phone = e164
-  } else if (phone === '' || phone === null) {
+  } else {
     phone = null
   }
 
@@ -63,13 +151,28 @@ export async function updateMyProfile(input: {
     p_clear_phone?: boolean
     p_clear_avatar?: boolean
   } = {}
-  if (input.displayName !== undefined) args.p_display_name = input.displayName
-  if (input.username !== undefined) args.p_username = input.username
-  if (input.bio !== undefined) args.p_bio = input.bio
-  if (phone) args.p_phone = phone
-  if (phone === null) args.p_clear_phone = true
-  if (input.avatarUrl) args.p_avatar_url = input.avatarUrl
-  if (input.avatarUrl === null) args.p_clear_avatar = true
+
+  if (input.displayName !== undefined) {
+    args.p_display_name = input.displayName
+  }
+  if (input.username !== undefined) {
+    // Empty string clears username; null would be indistinguishable from "omit" in SQL.
+    args.p_username = input.username ?? ''
+  }
+  if (input.bio !== undefined) {
+    // Empty string clears bio; null would be indistinguishable from "omit" in SQL.
+    args.p_bio = input.bio ?? ''
+  }
+  if (phone) {
+    args.p_phone = phone
+  } else if (phone === null) {
+    args.p_clear_phone = true
+  }
+  if (input.avatarUrl) {
+    args.p_avatar_url = input.avatarUrl
+  } else if (input.avatarUrl === null) {
+    args.p_clear_avatar = true
+  }
 
   const { data, error } = await supabase.rpc('update_my_profile', args)
 
@@ -77,14 +180,14 @@ export async function updateMyProfile(input: {
 
   if (error) {
     const parsed = parsePlayrRpcError(error, "Couldn't update profile. Try again.")
-    if (parsed.code !== 'app_error') throw parsed
+    if (parsed.code !== 'app_error' && parsed.code !== 'NOT_FOUND') throw parsed
     logDevError('updateMyProfile rpc', error)
   }
 
   return updateMyProfileDirect(user.id, {
     displayName: input.displayName,
     username: input.username,
-    phone,
+    phone: input.phone,
     bio: input.bio,
     avatarUrl: input.avatarUrl,
   })
@@ -100,6 +203,13 @@ async function updateMyProfileDirect(
     avatarUrl?: string | null
   },
 ): Promise<Tables<'profiles'>> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new AppError('Please sign in.')
+
+  const before = await ensureMyProfile()
+
   const patch: {
     display_name?: string | null
     username?: string | null
@@ -115,11 +225,42 @@ async function updateMyProfileDirect(
     const raw = input.username?.trim().replace(/^@/, '').toLowerCase() || null
     patch.username = raw
   }
-  if (input.phone !== undefined) patch.phone = input.phone
-  if (input.bio !== undefined) patch.bio = input.bio?.trim() ? input.bio.trim() : null
-  if (input.avatarUrl !== undefined) patch.avatar_url = input.avatarUrl
+  if (input.bio !== undefined) {
+    patch.bio = input.bio?.trim() ? input.bio.trim() : null
+  }
+  if (input.avatarUrl !== undefined) {
+    patch.avatar_url = input.avatarUrl
+  }
 
-  const { error } = await supabase.from('profiles').update(patch).eq('id', userId)
+  let phone: string | null | undefined = input.phone
+  if (phone === undefined) {
+    // unchanged
+  } else if (typeof phone === 'string' && phone.trim()) {
+    const e164 = normalizePhoneE164(phone)
+    if (!e164) throw new AppError('Enter a valid phone number.', 'INVALID_PHONE')
+    patch.phone = e164
+  } else if (phone === null) {
+    patch.phone = null
+  }
+
+  if (Object.keys(patch).length === 0) return before
+
+  let { data, error } = await supabase
+    .from('profiles')
+    .update(patch)
+    .eq('id', userId)
+    .select('id')
+    .maybeSingle()
+
+  if (!error && !data) {
+    await ensureMyProfile()
+    ;({ data, error } = await supabase
+      .from('profiles')
+      .update(patch)
+      .eq('id', userId)
+      .select('id')
+      .maybeSingle())
+  }
 
   if (error) {
     logDevError('updateMyProfile', error)
@@ -136,9 +277,21 @@ async function updateMyProfileDirect(
     throw new AppError("Couldn't update profile. Try again.")
   }
 
-  const full = await getMyProfile()
-  if (!full) throw new AppError("Couldn't load your profile. Try again.")
-  return full
+  if (!data) {
+    throw new AppError("Couldn't update profile. Try again.")
+  }
+
+  const reloaded = await getMyProfile()
+  if (reloaded) return reloaded
+
+  return buildProfileRow(
+    {
+      ...before,
+      ...patch,
+      updated_at: new Date().toISOString(),
+    },
+    user,
+  )
 }
 
 export async function uploadMyAvatar(file: File): Promise<Tables<'profiles'>> {
@@ -192,14 +345,16 @@ export async function ensureProfileAfterSignup(input: {
   } = await supabase.auth.getUser()
   if (!user) return
 
-  const { error } = await supabase.from('profiles').upsert({
+  const { error } = await supabase.from('profiles').insert({
     id: user.id,
-    display_name: input.displayName,
-    username: input.username || null,
+    display_name: input.displayName.trim(),
+    username: input.username?.trim() || null,
+    is_active: true,
   })
 
-  if (error) {
+  if (error && error.code !== '23505') {
     logDevError('ensureProfileAfterSignup', error)
+    throw new AppError("Couldn't save your profile. Try again.")
   }
 }
 

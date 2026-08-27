@@ -1,3 +1,5 @@
+import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { MotionTextLink } from '@/components/motion/MotionLink'
 import { Header } from '@/components/layout/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
@@ -61,10 +63,9 @@ export function NotificationsPage() {
         backTo="/home"
         right={
           items.some((n) => !n.readAt) ? (
-            <button
-              type="button"
+            <MotionTextLink
               disabled={busy}
-              className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white disabled:opacity-40"
+              className={busy ? 'opacity-40' : undefined}
               onClick={() => {
                 setBusy(true)
                 void markAllRead()
@@ -82,13 +83,13 @@ export function NotificationsPage() {
               }}
             >
               Mark all read
-            </button>
+            </MotionTextLink>
           ) : null
         }
       />
       <div className="page-pad space-y-0 py-2">
         {loading ? (
-          <div className="glass my-4 h-32 animate-pulse" />
+          <LoadingBlock className="my-4 h-32" />
         ) : error ? (
           <div className="py-4">
             <EmptyState title="Couldn't load" description={error} />
@@ -106,7 +107,10 @@ export function NotificationsPage() {
               <li key={n.id}>
                 <button
                   type="button"
-                  className="flex w-full gap-3 px-4 py-4 text-left transition hover:bg-white/[0.04]"
+                  className={cn(
+                    'motion-row flex w-full gap-3 px-4 py-4 text-left',
+                    !n.readAt && 'motion-read-fade',
+                  )}
                   onClick={() => {
                     const prevReadAt = n.readAt
                     if (!n.readAt) {

@@ -1,3 +1,5 @@
+import { AnimatedNumber } from '@/components/motion/AnimatedNumber'
+import { StatusTransition } from '@/components/motion/StatusTransition'
 import { cn, formatRelativeDeadline, statusLabel } from '@/lib/format'
 import {
   deadlineToneClass,
@@ -58,7 +60,8 @@ export function GameStatus({ game, className }: Props) {
   const deadlineClass = deadlineToneClass(urgency)
 
   return (
-    <div className={cn(statusPanelClass(game.status), 'p-4', className)}>
+    <StatusTransition phaseKey={game.status}>
+      <div className={cn(statusPanelClass(game.status), 'p-4', className)}>
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="label-caps">Game status</p>
@@ -95,7 +98,9 @@ export function GameStatus({ game, className }: Props) {
         </div>
         <div className="text-right">
           <p className="text-[14px] font-semibold tabular-nums text-white">
-            {game.confirmedCount}/{game.minPlayers} min
+            <AnimatedNumber value={game.confirmedCount} />
+            /
+            <AnimatedNumber value={game.minPlayers} /> min
           </p>
           <p className={cn('mt-0.5 text-[12px]', deadlineClass)}>
             {formatRelativeDeadline(game.confirmationDeadline, true)}
@@ -106,7 +111,8 @@ export function GameStatus({ game, className }: Props) {
         Confirmation locks automatically 3 hours before kickoff. If the minimum
         is met, the roster locks. If not, the game cancels.
       </p>
-    </div>
+      </div>
+    </StatusTransition>
   )
 }
 
@@ -166,7 +172,7 @@ function TimeBlock({ value, unit }: { value: number; unit: string }) {
   return (
     <div>
       <div className="min-w-14 font-[family-name:var(--font-display)] text-[28px] font-semibold tabular-nums tracking-tight">
-        {String(value).padStart(2, '0')}
+        <AnimatedNumber live value={String(value).padStart(2, '0')} />
       </div>
       <div className="text-[10px] uppercase tracking-[0.1em] text-white/40">
         {unit}

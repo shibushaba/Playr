@@ -1,3 +1,4 @@
+import { StickyChrome } from '@/components/ui/ChromePosition'
 import { GlassChromeBar } from '@/components/ui/GlassChromeBar'
 import { cn } from '@/lib/format'
 import { ChevronLeft } from 'lucide-react'
@@ -23,7 +24,7 @@ export function Header({
   className,
   transparent,
 }: Props) {
-  const barClassName = 'relative px-3 py-2.5 sm:px-4 sm:py-3'
+  const barClassName = 'px-3 py-2.5 sm:px-4 sm:py-3'
 
   const content = (
     <div className="flex items-center gap-3">
@@ -31,7 +32,7 @@ export function Header({
         backTo ? (
           <Link
             to={backTo}
-            className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-white/12 bg-white/[0.04] backdrop-blur-glass text-white transition hover:border-white/25 hover:bg-white/[0.08]"
+            className="motion-btn motion-icon-back flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-white/12 bg-white/[0.04] backdrop-blur-glass text-white hover:border-white/25 hover:bg-white/[0.08]"
             aria-label="Go back"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -40,7 +41,7 @@ export function Header({
           <button
             type="button"
             onClick={onBack}
-            className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-white/12 bg-white/[0.04] backdrop-blur-glass text-white transition hover:border-white/25 hover:bg-white/[0.08]"
+            className="motion-btn motion-icon-back flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-white/12 bg-white/[0.04] backdrop-blur-glass text-white hover:border-white/25 hover:bg-white/[0.08]"
             aria-label="Go back"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -64,9 +65,9 @@ export function Header({
   )
 
   return (
-    <header
+    <StickyChrome
       className={cn(
-        'sticky top-0 z-50 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]',
+        'px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]',
         className,
       )}
     >
@@ -75,6 +76,6 @@ export function Header({
       ) : (
         <GlassChromeBar className={barClassName}>{content}</GlassChromeBar>
       )}
-    </header>
+    </StickyChrome>
   )
 }

@@ -1,3 +1,4 @@
+import { LoadingBlock } from '@/components/motion/LoadingBlock'
 import { GameCard } from '@/components/game/GameCard'
 import { GameAvailability } from '@/components/game/GameAvailability'
 import { Header } from '@/components/layout/Header'
@@ -108,7 +109,7 @@ export function GroupDetailsPage() {
       <div>
         <Header title="Group" backTo="/groups" />
         <div className="page-pad py-8">
-          <div className="glass h-40 animate-pulse" />
+          <LoadingBlock />
         </div>
       </div>
     )

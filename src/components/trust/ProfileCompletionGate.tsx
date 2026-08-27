@@ -78,7 +78,7 @@ export function ProfileCompletionGate({ requiredFor }: Props) {
           Check your inbox for a confirmation link, then return here.
         </p>
       ) : null}
-      {error ? <p className="glass px-3 py-2 text-[13px] text-white">{error}</p> : null}
+      {error ? <p className="glass motion-error-in px-3 py-2 text-[13px] text-white">{error}</p> : null}
       {actionForStatus(completion.status)}
     </section>
   )

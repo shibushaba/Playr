@@ -1,4 +1,5 @@
-import { ensureProfileAfterSignup, getMyProfile } from '@/services/profiles'
+import { ensureMyProfile, ensureProfileAfterSignup, getMyProfile } from '@/services/profiles'
+import { logDevError } from '@/lib/errors'
 import { authErrorMessage } from '@/lib/authErrors'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/database'
@@ -26,6 +27,7 @@ interface AuthContextValue {
   }) => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  applyProfile: (profile: Tables<'profiles'>) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -35,12 +37,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Tables<'profiles'> | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const applyProfile = useCallback((next: Tables<'profiles'>) => {
+    setProfile(next)
+  }, [])
+
   const refreshProfile = useCallback(async () => {
     try {
-      const p = await getMyProfile()
+      let p = await getMyProfile()
+      if (!p) {
+        p = await ensureMyProfile()
+      }
       setProfile(p)
-    } catch {
-      setProfile(null)
+    } catch (err) {
+      logDevError('refreshProfile', err)
     }
   }, [])
 
@@ -120,11 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         )
       }
       if (data.user) {
-        try {
-          await ensureProfileAfterSignup({ displayName: input.displayName })
-        } catch {
-          // Profile trigger usually creates the row; never block signup on this.
-        }
+        await ensureProfileAfterSignup({ displayName: input.displayName })
       }
     },
     [],
@@ -146,8 +151,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       refreshProfile,
+      applyProfile,
     }),
-    [session, profile, loading, signIn, signUp, signOut, refreshProfile],
+    [session, profile, loading, signIn, signUp, signOut, refreshProfile, applyProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

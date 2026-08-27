@@ -1,3 +1,4 @@
+import { LoadingBall } from '@/components/motion/LoadingBall'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { LocationProvider } from '@/contexts/LocationContext'
 import { AppLayout } from '@/layouts/AppLayout'
@@ -86,7 +87,7 @@ function RouteFallback() {
       role="status"
       aria-live="polite"
     >
-      <div className="h-10 w-10 animate-pulse rounded-full bg-brand/30" />
+      <LoadingBall size="lg" />
       <span className="sr-only">Loading</span>
     </div>
   )

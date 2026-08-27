@@ -10,7 +10,7 @@ interface Props {
 
 export function EmptyState({ title, description, action, className }: Props) {
   return (
-    <div className={cn('glass px-5 py-10', className)}>
+    <div className={cn('glass motion-enter px-5 py-10', className)}>
       <p className="label-caps">Empty</p>
       <h2 className="mt-3 font-[family-name:var(--font-display)] text-[22px] font-semibold tracking-tight text-white">
         {title}

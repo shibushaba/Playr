@@ -161,13 +161,13 @@ export function CreateGroupPage() {
       <Header title="Create group" backTo="/groups" subtitle={`Step ${step} of 4`} />
       <div className="page-pad space-y-6 py-6">
         {error ? (
-          <p className="glass px-3 py-2 text-[13px] text-white">
+          <p className="glass motion-error-in px-3 py-2 text-[13px] text-white">
             {error}
           </p>
         ) : null}
 
         {step === 1 ? (
-          <>
+          <div key="step-1" className="motion-step-in space-y-6">
             <div>
               <h2 className="display-lg">
                 Sport + name
@@ -214,11 +214,11 @@ export function CreateGroupPage() {
             >
               Continue
             </PrimaryButton>
-          </>
+          </div>
         ) : null}
 
         {step === 2 ? (
-          <>
+          <div key="step-2" className="motion-step-in space-y-6">
             <div>
               <h2 className="display-lg">
                 Venue + schedule
@@ -315,11 +315,11 @@ export function CreateGroupPage() {
                 Continue
               </PrimaryButton>
             </div>
-          </>
+          </div>
         ) : null}
 
         {step === 3 ? (
-          <>
+          <div key="step-3" className="motion-step-in space-y-6">
             <div>
               <h2 className="display-lg">
                 Players + visibility
@@ -403,11 +403,11 @@ export function CreateGroupPage() {
                 Review
               </PrimaryButton>
             </div>
-          </>
+          </div>
         ) : null}
 
         {step === 4 ? (
-          <>
+          <div key="step-4" className="motion-step-in space-y-6">
             <div>
               <h2 className="display-lg">
                 Review
@@ -461,12 +461,12 @@ export function CreateGroupPage() {
                 {busy ? 'Creating…' : 'Create Group'}
               </PrimaryButton>
             </div>
-          </>
+          </div>
         ) : null}
 
         <Link
           to="/host"
-          className="block text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
+          className="motion-link block text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45"
         >
           Prefer a one-off game instead?
         </Link>

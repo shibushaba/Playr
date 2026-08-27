@@ -94,7 +94,7 @@ export function PhoneVerificationSheet({
       onClose={onClose}
       closeLabel="Close"
       lockScroll
-      panelClassName="overflow-hidden"
+      panelClassName="max-w-lg"
     >
         <div className="border-b border-white/10 px-5 py-5">
           <h2 className="text-[18px] font-semibold tracking-tight text-white">
@@ -125,7 +125,7 @@ export function PhoneVerificationSheet({
                 </div>
               </label>
               {error ? (
-                <p className="glass px-3 py-2 text-[13px] text-white">{error}</p>
+                <p className="glass motion-error-in px-3 py-2 text-[13px] text-white">{error}</p>
               ) : null}
               <PrimaryButton fullWidth disabled={busy} onClick={() => void sendCode()}>
                 {busy ? 'Sending…' : 'Send code'}
@@ -158,7 +158,7 @@ export function PhoneVerificationSheet({
                 />
               </label>
               {error ? (
-                <p className="glass px-3 py-2 text-[13px] text-white">{error}</p>
+                <p className="glass motion-error-in px-3 py-2 text-[13px] text-white">{error}</p>
               ) : null}
               <PrimaryButton fullWidth disabled={busy} onClick={() => void verifyCode()}>
                 {busy ? 'Verifying…' : 'Verify'}

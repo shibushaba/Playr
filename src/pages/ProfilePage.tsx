@@ -1,3 +1,6 @@
+import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { MotionNavRow } from '@/components/motion/MotionLink'
+import { StatusTransition } from '@/components/motion/StatusTransition'
 import { Header } from '@/components/layout/Header'
 import { NotificationBell } from '@/components/layout/NotificationBell'
 import { PlayerAvatar } from '@/components/player/PlayerAvatar'
@@ -16,12 +19,12 @@ import {
   uploadMyAvatar,
 } from '@/services/profiles'
 import { resendEmailVerification } from '@/services/verification'
-import { Camera, ChevronRight } from 'lucide-react'
+import { Camera } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 export function ProfilePage() {
-  const { user, profile, signOut, loading, refreshProfile } = useAuth()
+  const { user, profile, signOut, loading, refreshProfile, applyProfile } = useAuth()
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
   const [stats, setStats] = useState<PlayerReliability | null>(null)
@@ -69,7 +72,7 @@ export function ProfilePage() {
       <div>
         <Header title="Profile" />
         <div className="page-pad py-8">
-          <div className="glass h-40 animate-pulse" />
+          <LoadingBlock />
         </div>
       </div>
     )
@@ -114,8 +117,8 @@ export function ProfilePage() {
     setPhotoBusy(true)
     setSaveError(null)
     try {
-      await uploadMyAvatar(file)
-      await refreshProfile()
+      const updated = await uploadMyAvatar(file)
+      applyProfile(updated)
     } catch (e) {
       setSaveError(toUserMessage(e, "Couldn't update your photo."))
     } finally {
@@ -128,8 +131,8 @@ export function ProfilePage() {
     setPhotoBusy(true)
     setSaveError(null)
     try {
-      await removeMyAvatar()
-      await refreshProfile()
+      const updated = await removeMyAvatar()
+      applyProfile(updated)
     } catch (e) {
       setSaveError(toUserMessage(e, "Couldn't remove your photo."))
     } finally {
@@ -151,13 +154,19 @@ export function ProfilePage() {
     setSaveError(null)
     setSaveOk(false)
     try {
-      await updateMyProfile({
+      const phoneArg = phoneLocal.trim()
+        ? phoneLocal.trim()
+        : profile?.phone
+          ? null
+          : undefined
+
+      const updated = await updateMyProfile({
         displayName: displayName.trim(),
         username: uname,
-        bio: bio.trim() || null,
-        phone: phoneLocal.trim() ? phoneLocal.trim() : null,
+        bio: bio.trim(),
+        phone: phoneArg,
       })
-      await refreshProfile()
+      applyProfile(updated)
       setEditing(false)
       setSaveOk(true)
     } catch (e) {
@@ -279,7 +288,7 @@ export function ProfilePage() {
               </button>
             ) : null}
             {saveError ? (
-              <p className="glass px-3 py-2 text-[13px] text-white">{saveError}</p>
+              <p className="glass motion-error-in px-3 py-2 text-[13px] text-white">{saveError}</p>
             ) : null}
             <div className="flex gap-2">
               <SecondaryButton
@@ -304,10 +313,12 @@ export function ProfilePage() {
         ) : (
           <>
             {saveOk ? (
-              <p className="text-[13px] text-status-success">Profile updated.</p>
+              <StatusTransition phaseKey="saved">
+                <p className="text-[13px] text-status-success">Profile updated.</p>
+              </StatusTransition>
             ) : null}
             {saveError ? (
-              <p className="glass px-3 py-2 text-[13px] text-white">{saveError}</p>
+              <p className="glass motion-error-in px-3 py-2 text-[13px] text-white">{saveError}</p>
             ) : null}
             {profile?.bio ? (
               <p className="text-[14px] leading-relaxed text-white/70">{profile.bio}</p>
@@ -356,7 +367,7 @@ export function ProfilePage() {
               </p>
             ) : null}
             {contactError ? (
-              <p className="text-[13px] text-white/70">{contactError}</p>
+              <p className="glass motion-error-in px-3 py-2 text-[13px] text-white/70">{contactError}</p>
             ) : null}
           </div>
         </section>
@@ -403,10 +414,10 @@ export function ProfilePage() {
         </section>
 
         <div className="glass overflow-hidden">
-          <Row to="/my-games" label="Upcoming / past games" />
-          <Row to="/groups" label="My groups" />
-          <Row to="/notifications" label="Notifications" />
-          <Row to="/venues/new?returnTo=create-game" label="Submit a venue" />
+          <MotionNavRow to="/my-games" label="Upcoming / past games" />
+          <MotionNavRow to="/groups" label="My groups" />
+          <MotionNavRow to="/notifications" label="Notifications" />
+          <MotionNavRow to="/venues/new?returnTo=create-game" label="Submit a venue" />
         </div>
 
         <div className="glass-elevated p-5">
@@ -453,18 +464,6 @@ function StatRow({ label, value }: { label: string; value: string | number }) {
       <dt className="text-[13px] text-white/45">{label}</dt>
       <dd className="text-[15px] font-semibold tabular-nums text-white">{value}</dd>
     </div>
-  )
-}
-
-function Row({ to, label }: { to: string; label: string }) {
-  return (
-    <Link
-      to={to}
-      className="flex items-center justify-between border-b border-white/10 px-4 py-3.5 last:border-0 transition hover:bg-white/[0.04]"
-    >
-      <span className="text-[14px] font-medium text-white">{label}</span>
-      <ChevronRight className="h-4 w-4 text-white/45" />
-    </Link>
   )
 }
 

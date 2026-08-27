@@ -1,3 +1,7 @@
+import { FadeIn } from '@/components/motion/FadeIn'
+import { MotionTextLink } from '@/components/motion/MotionLink'
+import { PageContent } from '@/components/motion/PageContent'
+import { LoadingBlock } from '@/components/motion/LoadingBlock'
 import { FilterSheet, type FilterState } from '@/components/filters/FilterSheet'
 import { GameCard } from '@/components/game/GameCard'
 import { NotificationBell } from '@/components/layout/NotificationBell'
@@ -16,7 +20,7 @@ import { listSports } from '@/services/sports'
 import type { GameListItem, SportRecord, VenueRecord } from '@/types/domain'
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 function dateRangeFromFilter(filters: FilterState): {
   gameDate?: string
@@ -55,6 +59,7 @@ function greeting(): string {
 
 export function HomePage() {
   const { profile, user } = useAuth()
+  const navigate = useNavigate()
   const {
     location,
     permission,
@@ -172,6 +177,7 @@ export function HomePage() {
   return (
     <div className="pb-8">
       <header className="page-pad border-b border-white/10 pt-6 pb-5">
+        <FadeIn>
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="font-[family-name:var(--font-display)] text-[18px] font-semibold uppercase tracking-[0.14em] text-white">
@@ -183,9 +189,9 @@ export function HomePage() {
               aria-label={`Change location, currently ${locationLabel}`}
               className="mt-3 flex flex-col items-start gap-0.5 text-left"
             >
-              <span className="inline-flex items-center gap-1.5 text-[13px] text-white/70 transition hover:text-white">
+              <span className="group inline-flex items-center gap-1.5 text-[13px] text-white/70 transition hover:text-white">
                 {locationLabel}
-                <ChevronDown className="h-3.5 w-3.5" />
+                <ChevronDown className="motion-icon-chevron h-3.5 w-3.5" />
               </span>
               {isGps ? (
                 <span className="text-[11px] text-white/40">
@@ -220,10 +226,13 @@ export function HomePage() {
         <h1 className="display-lg mt-2 max-w-md">
           What are you playing?
         </h1>
+        </FadeIn>
       </header>
 
-      <section className="mt-6">
-        <div className="flex gap-2 overflow-x-auto px-5 pb-1 scrollbar-none">
+      <PageContent>
+      <FadeIn delay={50}>
+      <section className="page-pad mt-6">
+        <div className="chip-scroll-row chip-scroll-row--bleed flex gap-2 scrollbar-none">
           <SportChip
             sport={{ id: 'all', name: 'All', slug: 'all', label: 'All' }}
             selected={activeSport === 'all'}
@@ -247,7 +256,9 @@ export function HomePage() {
           ))}
         </div>
       </section>
+      </FadeIn>
 
+      <FadeIn delay={80}>
       <section className="page-pad mt-10">
         <div className="mb-5 flex items-end justify-between gap-3">
           <div>
@@ -256,13 +267,7 @@ export function HomePage() {
               {loading ? 'Loading…' : 'Tonight and upcoming'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(true)}
-            className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
-          >
-            Filter
-          </button>
+          <MotionTextLink onClick={() => setFiltersOpen(true)}>Filter</MotionTextLink>
         </div>
 
         {error ? (
@@ -276,11 +281,7 @@ export function HomePage() {
             }
           />
         ) : loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="glass h-44 animate-pulse" />
-            ))}
-          </div>
+          <LoadingBlock className="min-h-48" />
         ) : games.length === 0 ? (
           <EmptyState
             title="No games near you"
@@ -325,16 +326,13 @@ export function HomePage() {
           </>
         )}
       </section>
+      </FadeIn>
 
+      <FadeIn delay={110}>
       <section className="page-pad mt-12">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="section-label">Nearby venues</h2>
-          <Link
-            to="/explore"
-            className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
-          >
-            View all
-          </Link>
+          <MotionTextLink onClick={() => navigate('/explore')}>View all</MotionTextLink>
         </div>
         <div className="space-y-2">
           {venues.slice(0, 3).map((v) => (
@@ -342,6 +340,8 @@ export function HomePage() {
           ))}
         </div>
       </section>
+      </FadeIn>
+      </PageContent>
 
       <FilterSheet
         open={filtersOpen}

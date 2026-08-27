@@ -1,3 +1,7 @@
+import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { MotionTextLink } from '@/components/motion/MotionLink'
+import { PageContent } from '@/components/motion/PageContent'
+import { MotionTab, MotionTabBar } from '@/components/motion/MotionTab'
 import { GameCard } from '@/components/game/GameCard'
 import { GroupCard } from '@/components/group/GroupCard'
 import { Header } from '@/components/layout/Header'
@@ -94,16 +98,10 @@ export function ExplorePage() {
         title="Explore"
         subtitle="Games, venues & groups"
         right={
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
-          >
-            Area
-          </button>
+          <MotionTextLink onClick={() => setPickerOpen(true)}>Area</MotionTextLink>
         }
       />
-      <div className="page-pad py-5">
+      <PageContent className="page-pad py-5">
         {!location ? (
           <EmptyState
             title="Location unavailable"
@@ -118,50 +116,46 @@ export function ExplorePage() {
           <>
             <SearchBar value={query} onChange={setQuery} />
 
-            <div className="glass mt-5 flex overflow-hidden">
-              {(
-                [
-                  ['games', 'Games'],
-                  ['venues', 'Venues'],
-                  ['groups', 'Groups'],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTab(id)}
-                  className={
-                    tab === id
-                      ? 'flex-1 bg-white py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-cta'
-                      : 'flex-1 py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white'
-                  }
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="mt-5 space-y-4">
+              <MotionTabBar>
+                {(
+                  [
+                    ['games', 'Games'],
+                    ['venues', 'Venues'],
+                    ['groups', 'Groups'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <MotionTab key={id} active={tab === id} onClick={() => setTab(id)}>
+                    {label}
+                  </MotionTab>
+                ))}
+              </MotionTabBar>
+
+              {tab !== 'groups' ? (
+                <div className="chip-scroll-row chip-scroll-row--bleed flex gap-2 scrollbar-none">
+                  <SportChip
+                    sport={{ id: 'all', name: 'All', slug: 'all', label: 'All' }}
+                    selected={sportId === 'all'}
+                    onClick={() => setSportId('all')}
+                  />
+                  {sports.map((s) => (
+                    <SportChip
+                      key={s.id}
+                      sport={s}
+                      selected={sportId === s.id}
+                      onClick={() => setSportId(s.id)}
+                    />
+                  ))}
+                </div>
+              ) : null}
             </div>
 
-            {tab !== 'groups' ? (
-              <div className="mt-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                <SportChip
-                  sport={{ id: 'all', name: 'All', slug: 'all', label: 'All' }}
-                  selected={sportId === 'all'}
-                  onClick={() => setSportId('all')}
-                />
-                {sports.map((s) => (
-                  <SportChip
-                    key={s.id}
-                    sport={s}
-                    selected={sportId === s.id}
-                    onClick={() => setSportId(s.id)}
-                  />
-                ))}
-              </div>
-            ) : null}
-
-            <div className="mt-5 space-y-3">
+            <div
+              key={`${tab}-${sportId}-${debouncedQuery}`}
+              className="mt-6 space-y-3 motion-results-in"
+            >
               {loading ? (
-                <div className="glass h-32 animate-pulse" />
+                <LoadingBlock className="h-32" />
               ) : error ? (
                 <EmptyState title="Couldn't load" description={error} />
               ) : tab === 'games' ? (
@@ -219,7 +213,7 @@ export function ExplorePage() {
             </div>
           </>
         )}
-      </div>
+      </PageContent>
       <LocationPickerSheet />
     </div>
   )

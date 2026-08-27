@@ -11,10 +11,7 @@ export function GroupCard({ group, className }: Props) {
   return (
     <Link
       to={`/groups/${group.id}`}
-      className={cn(
-        'glass block p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/20',
-        className,
-      )}
+      className={cn('motion-card glass block p-5', className)}
     >
       <p className="label-caps">{group.sport?.name ?? 'Sport'}</p>
       <h3 className="mt-2 font-[family-name:var(--font-display)] text-[22px] font-semibold tracking-tight text-white">

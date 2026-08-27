@@ -1036,6 +1036,10 @@ export interface Database {
         Args: Record<string, never>
         Returns: Database['public']['Tables']['profiles']['Row']
       }
+      ensure_my_profile: {
+        Args: Record<string, never>
+        Returns: Database['public']['Tables']['profiles']['Row']
+      }
       ensure_host_player: {
         Args: { p_game_id: string }
         Returns: Database['public']['Tables']['game_players']['Row']

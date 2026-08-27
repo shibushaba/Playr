@@ -36,7 +36,7 @@ export function VenueCard({ venue, to, selected, onClick, className }: Props) {
   )
 
   const cls = cn(
-    'glass block w-full p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:border-white/20',
+    'motion-card glass block w-full p-4 text-left',
     selected && 'border-white/25 bg-white/[0.08]',
     className,
   )

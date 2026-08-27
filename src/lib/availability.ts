@@ -112,27 +112,28 @@ export function occupancyProgressClass(tone: SemanticTone): string {
 export function occupancyGlowStyle(state: OccupancyState): Record<string, string> {
   const opacity = state === 'almost_full' ? 0.08 : state === 'full' ? 0.07 : 0.055
   const topOpacity = opacity * 0.75
+  /* Keep gradients inside card bounds — oversized ellipses clip as hard vertical edges */
   switch (state) {
     case 'available':
       return {
         background: [
-          `radial-gradient(ellipse 120% 80% at 50% 0%, rgba(52,211,153,${topOpacity}), transparent 58%)`,
-          `radial-gradient(circle at 72% 88%, rgba(52,211,153,${opacity}), transparent 62%)`,
+          `radial-gradient(ellipse 90% 65% at 50% 0%, rgba(52,211,153,${topOpacity}), transparent 72%)`,
+          `radial-gradient(circle at 50% 100%, rgba(52,211,153,${opacity * 0.65}), transparent 68%)`,
         ].join(', '),
       }
     case 'filling':
     case 'almost_full':
       return {
         background: [
-          `radial-gradient(ellipse 120% 80% at 50% 0%, rgba(245,184,61,${topOpacity}), transparent 58%)`,
-          `radial-gradient(circle at 72% 88%, rgba(245,184,61,${opacity + 0.01}), transparent 62%)`,
+          `radial-gradient(ellipse 90% 65% at 50% 0%, rgba(245,184,61,${topOpacity}), transparent 72%)`,
+          `radial-gradient(circle at 50% 100%, rgba(245,184,61,${(opacity + 0.01) * 0.65}), transparent 68%)`,
         ].join(', '),
       }
     case 'full':
       return {
         background: [
-          `radial-gradient(ellipse 120% 80% at 50% 0%, rgba(91,157,255,${topOpacity}), transparent 58%)`,
-          `radial-gradient(circle at 72% 88%, rgba(91,157,255,${opacity}), transparent 62%)`,
+          `radial-gradient(ellipse 90% 65% at 50% 0%, rgba(91,157,255,${topOpacity}), transparent 72%)`,
+          `radial-gradient(circle at 50% 100%, rgba(91,157,255,${opacity * 0.65}), transparent 68%)`,
         ].join(', '),
       }
     default:

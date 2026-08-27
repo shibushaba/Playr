@@ -1,4 +1,6 @@
 import { Header } from '@/components/layout/Header'
+import { PageContent } from '@/components/motion/PageContent'
+import { MotionTab, MotionTabBar } from '@/components/motion/MotionTab'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { useAuth } from '@/contexts/AuthContext'
 import { isSupabaseConfigured } from '@/lib/supabase'
@@ -70,7 +72,7 @@ export function AuthPage() {
   return (
     <div className="min-h-dvh">
       <Header title={mode === 'signin' ? 'Sign in' : 'Join PLAYR'} backTo="/" />
-      <div className="page-pad py-8">
+      <PageContent className="page-pad py-8">
         <p className="text-[14px] leading-relaxed text-white/45">
           Sign in with email to join games, host, and keep your reliability
           history. PLAYR never handles payments.
@@ -91,14 +93,14 @@ export function AuthPage() {
           </div>
         ) : null}
 
-        <div className="glass mt-8 flex overflow-hidden">
-          <ModeTab active={mode === 'signin'} onClick={() => setMode('signin')}>
+        <MotionTabBar className="mt-8">
+          <MotionTab active={mode === 'signin'} onClick={() => setMode('signin')}>
             Sign in
-          </ModeTab>
-          <ModeTab active={mode === 'signup'} onClick={() => setMode('signup')}>
+          </MotionTab>
+          <MotionTab active={mode === 'signup'} onClick={() => setMode('signup')}>
             Sign up
-          </ModeTab>
-        </div>
+          </MotionTab>
+        </MotionTabBar>
 
         <form className="mt-8 space-y-5" onSubmit={onSubmit}>
           {mode === 'signup' ? (
@@ -151,7 +153,7 @@ export function AuthPage() {
           </Field>
 
           {error ? (
-            <p className="glass px-3 py-2 text-[13px] text-white">
+            <p className="glass motion-error-in px-3 py-2 text-[13px] text-status-danger">
               {error}
             </p>
           ) : null}
@@ -176,7 +178,7 @@ export function AuthPage() {
             Browse games
           </Link>
         </p>
-      </div>
+      </PageContent>
 
       <style>{`
         .field {
@@ -213,29 +215,5 @@ function Field({
       <span className="label-caps mb-2 block">{label}</span>
       {children}
     </label>
-  )
-}
-
-function ModeTab({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        active
-          ? 'flex-1 bg-white py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-cta'
-          : 'flex-1 py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white'
-      }
-    >
-      {children}
-    </button>
   )
 }

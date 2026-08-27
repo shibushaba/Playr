@@ -61,7 +61,7 @@ function CheckRow({
             )}
             aria-hidden
           >
-            {done ? <Check className="h-3.5 w-3.5" /> : '○'}
+            {done ? <Check className="motion-check-draw h-3.5 w-3.5" /> : '○'}
           </span>
         </div>
         {action ? <div className="mt-3">{action}</div> : null}

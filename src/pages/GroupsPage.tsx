@@ -1,3 +1,4 @@
+import { LoadingBlock } from '@/components/motion/LoadingBlock'
 import { GroupCard } from '@/components/group/GroupCard'
 import { Header } from '@/components/layout/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -40,7 +41,7 @@ export function GroupsPage() {
           own roster, deadline, and attendance.
         </p>
         {loading ? (
-          <div className="glass h-32 animate-pulse" />
+          <LoadingBlock className="h-32" />
         ) : error ? (
           <EmptyState title="Couldn't load groups" description={error} />
         ) : groups.length === 0 ? (

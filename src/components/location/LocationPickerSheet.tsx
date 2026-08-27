@@ -33,7 +33,8 @@ export function LocationPickerSheet() {
     <OverlaySheet
       onClose={() => setPickerOpen(false)}
       closeLabel="Close location picker"
-      panelClassName="max-h-[80dvh] overflow-hidden"
+      panelClassName="max-h-[80dvh]"
+      panelContentClassName="flex max-h-[80dvh] flex-col"
     >
         <div className="border-b border-white/10 px-5 py-5">
           <h2 className="text-[18px] font-semibold tracking-tight text-white">

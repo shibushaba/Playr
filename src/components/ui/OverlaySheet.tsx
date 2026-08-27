@@ -9,6 +9,7 @@ interface Props {
   closeLabel?: string
   children: ReactNode
   panelClassName?: string
+  panelContentClassName?: string
   scrimClassName?: string
   lockScroll?: boolean
 }
@@ -18,6 +19,7 @@ export function OverlaySheet({
   closeLabel = 'Close',
   children,
   panelClassName,
+  panelContentClassName,
   scrimClassName,
   lockScroll = false,
 }: Props) {
@@ -33,14 +35,15 @@ export function OverlaySheet({
     <div className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center">
       <GlassScrim
         aria-label={closeLabel}
-        className={cn('animate-fade-in', scrimClassName)}
+        className={cn('motion-scrim-in', scrimClassName)}
         onClick={onClose}
       />
       <GlassPanel
         className={cn(
-          'z-10 w-full max-w-lg animate-fade-up sm:rounded-[12px]',
+          'relative z-10 w-full max-w-lg sm:rounded-[12px]',
           panelClassName,
         )}
+        contentClassName={cn('motion-sheet-in', panelContentClassName)}
       >
         {children}
       </GlassPanel>

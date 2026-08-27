@@ -1,3 +1,6 @@
+import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { MotionTabPill } from '@/components/motion/MotionTab'
+import { StatusTransition } from '@/components/motion/StatusTransition'
 import { CallButton } from '@/components/game/CallButton'
 import { Countdown, GameStatus } from '@/components/game/GameStatus'
 import { GameChatPanel } from '@/components/game/GameChatPanel'
@@ -196,7 +199,7 @@ export function GameDetailsPage() {
       <div>
         <Header title="Game details" backTo="/home" />
         <div className="page-pad py-8">
-          <div className="glass h-48 animate-pulse" />
+          <LoadingBlock className="h-48" />
         </div>
       </div>
     )
@@ -732,7 +735,7 @@ export function GameDetailsPage() {
         ) : null}
 
         {actionError ? (
-          <div className="glass px-3 py-2 text-[13px] text-white">
+          <div className="glass motion-error-in px-3 py-2 text-[13px] text-white">
             {actionError}
             {actionError.toLowerCase().includes('location') ? (
               <p className="mt-1 text-white/45">Ask host to check you in.</p>
@@ -780,7 +783,7 @@ export function GameDetailsPage() {
         </section>
 
         {(canChat || isConfirmedPlayer || isHost || hasVenueLocation) ? (
-          <div className="flex gap-1 overflow-hidden rounded-[8px] bg-white/[0.04] p-1">
+          <GlassChromeBar className="flex gap-1 p-1">
             <TabBtn
               active={tab === 'players'}
               onClick={() => setTab('players')}
@@ -802,11 +805,12 @@ export function GameDetailsPage() {
               label="Chat"
               disabled={!canChat && !isHost}
             />
-          </div>
+          </GlassChromeBar>
         ) : null}
 
         {tab === 'chat' && (canChat || isHost) ? (
-          <GameChatPanel
+          <div key={tab} className="motion-panel-in">
+            <GameChatPanel
             gameId={game.id}
             currentUserId={user?.id}
             readOnly={chatReadOnly || (!canChat && !isHost)}
@@ -819,7 +823,9 @@ export function GameDetailsPage() {
               setReportOpen(true)
             }}
           />
+          </div>
         ) : tab === 'location' && game.venue && hasVenueLocation ? (
+          <div key={tab} className="motion-panel-in">
           <div className="glass p-4">
             <VenueReachPanel
               venue={game.venue}
@@ -832,8 +838,9 @@ export function GameDetailsPage() {
               }
             />
           </div>
+          </div>
         ) : (
-          <section>
+          <section key={tab} className="motion-panel-in">
             <p className="label-caps">
               {isCompleted || isLive ? 'Attendance' : 'Roster'}
             </p>
@@ -1035,6 +1042,61 @@ function GameActionDock({ children }: { children: ReactNode }) {
   )
 }
 
+function gameActionPhaseKey({
+  user,
+  isCancelled,
+  isDraft,
+  isHost,
+  iCheckedIn,
+  canSelfCheckIn,
+  windowInfo,
+  isConfirmedPlayer,
+  isReserved,
+  isWaitlisted,
+  isGameConfirmed,
+  rosterLocked,
+  isFull,
+  isLive,
+  isCompleted,
+}: {
+  user: ReturnType<typeof useAuth>['user']
+  isCancelled: boolean
+  isDraft: boolean
+  isHost: boolean
+  iCheckedIn: boolean
+  canSelfCheckIn: boolean
+  windowInfo: CheckInWindow | null
+  isConfirmedPlayer: boolean
+  isReserved: boolean
+  isWaitlisted: boolean
+  isGameConfirmed: boolean
+  rosterLocked: boolean
+  isFull: boolean
+  isLive: boolean
+  isCompleted: boolean
+}): string {
+  if (!user) return 'guest'
+  if (isCancelled) return 'cancelled'
+  if (isDraft && isHost) return 'draft-host'
+  if (isDraft) return 'draft'
+  if (iCheckedIn) return 'checked-in'
+  if (canSelfCheckIn && windowInfo?.playerWindowOpen) return 'check-in'
+  if (isHost) {
+    if (isCompleted) return 'host-completed'
+    if (isLive) return 'host-live'
+    if (isGameConfirmed) return 'host-confirmed'
+    return 'host'
+  }
+  if (isConfirmedPlayer || isReserved || isWaitlisted) {
+    if (isWaitlisted) return 'waitlisted'
+    if (isReserved) return 'reserved'
+    return 'confirmed'
+  }
+  if (isGameConfirmed || rosterLocked) return 'roster-locked'
+  if (isFull) return 'full'
+  return 'join'
+}
+
 function GameActionButton({
   user,
   game,
@@ -1080,8 +1142,28 @@ function GameActionButton({
   onPublishDraft: () => void
   onNavigate: ReturnType<typeof useNavigate>
 }) {
+  const phaseKey = gameActionPhaseKey({
+    user,
+    isCancelled,
+    isDraft,
+    isHost,
+    iCheckedIn,
+    canSelfCheckIn,
+    windowInfo,
+    isConfirmedPlayer,
+    isReserved,
+    isWaitlisted,
+    isGameConfirmed,
+    rosterLocked,
+    isFull,
+    isLive,
+    isCompleted,
+  })
+
+  let button: ReactNode
+
   if (!user) {
-    return (
+    button = (
       <PrimaryButton
         fullWidth
         onClick={() =>
@@ -1091,44 +1173,38 @@ function GameActionButton({
         Sign in to join
       </PrimaryButton>
     )
-  }
-  if (isCancelled) {
-    return (
+  } else if (isCancelled) {
+    button = (
       <PrimaryButton fullWidth disabled variant="outline">
         Game cancelled
       </PrimaryButton>
     )
-  }
-  if (isDraft && isHost) {
-    return (
+  } else if (isDraft && isHost) {
+    button = (
       <PrimaryButton fullWidth disabled={busy} onClick={onPublishDraft}>
         Publish game
       </PrimaryButton>
     )
-  }
-  if (isDraft) {
-    return (
+  } else if (isDraft) {
+    button = (
       <PrimaryButton fullWidth disabled variant="outline">
         Not published yet
       </PrimaryButton>
     )
-  }
-  if (iCheckedIn) {
-    return (
+  } else if (iCheckedIn) {
+    button = (
       <PrimaryButton fullWidth disabled variant="outline">
         ✓ You&apos;re checked in
       </PrimaryButton>
     )
-  }
-  if (canSelfCheckIn && windowInfo?.playerWindowOpen) {
-    return (
+  } else if (canSelfCheckIn && windowInfo?.playerWindowOpen) {
+    button = (
       <PrimaryButton fullWidth disabled={busy} onClick={onSelfCheckIn}>
         Check in
       </PrimaryButton>
     )
-  }
-  if (isHost) {
-    return (
+  } else if (isHost) {
+    button = (
       <PrimaryButton fullWidth disabled variant="outline">
         {isCompleted
           ? 'Completed'
@@ -1139,9 +1215,8 @@ function GameActionButton({
               : "You're hosting"}
       </PrimaryButton>
     )
-  }
-  if (isConfirmedPlayer || isReserved || isWaitlisted) {
-    return (
+  } else if (isConfirmedPlayer || isReserved || isWaitlisted) {
+    button = (
       <PrimaryButton
         fullWidth
         disabled={!isReserved && !isWaitlisted}
@@ -1159,16 +1234,14 @@ function GameActionButton({
             : "You're in"}
       </PrimaryButton>
     )
-  }
-  if (isGameConfirmed || rosterLocked) {
-    return (
+  } else if (isGameConfirmed || rosterLocked) {
+    button = (
       <PrimaryButton fullWidth disabled variant="outline">
         Roster locked
       </PrimaryButton>
     )
-  }
-  if (isFull) {
-    return (
+  } else if (isFull) {
+    button = (
       <PrimaryButton
         fullWidth
         onClick={() => onNavigate(`/games/${game.id}/join?mode=waitlist`)}
@@ -1176,12 +1249,15 @@ function GameActionButton({
         Join waitlist
       </PrimaryButton>
     )
+  } else {
+    button = (
+      <PrimaryButton fullWidth onClick={() => onNavigate(`/games/${game.id}/join`)}>
+        Join
+      </PrimaryButton>
+    )
   }
-  return (
-    <PrimaryButton fullWidth onClick={() => onNavigate(`/games/${game.id}/join`)}>
-      Join
-    </PrimaryButton>
-  )
+
+  return <StatusTransition phaseKey={phaseKey}>{button}</StatusTransition>
 }
 
 function TabBtn({
@@ -1198,18 +1274,9 @@ function TabBtn({
   disabled?: boolean
 }) {
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={
-        active
-          ? 'flex flex-1 items-center justify-center gap-1.5 rounded-[6px] bg-white/[0.12] py-2.5 text-[13px] font-semibold text-white'
-          : 'flex flex-1 items-center justify-center gap-1.5 rounded-[6px] py-2.5 text-[13px] font-semibold text-white/45 disabled:opacity-40'
-      }
-    >
+    <MotionTabPill active={active} onClick={onClick} disabled={disabled}>
       {icon}
       {label}
-    </button>
+    </MotionTabPill>
   )
 }

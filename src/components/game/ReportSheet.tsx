@@ -1,3 +1,4 @@
+import { StatusTransition } from '@/components/motion/StatusTransition'
 import { OverlaySheet } from '@/components/ui/OverlaySheet'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
@@ -99,7 +100,8 @@ export function ReportSheet({
       onClose={onClose}
       closeLabel="Close"
       lockScroll
-      panelClassName="max-h-[85dvh] overflow-y-auto p-5"
+      panelClassName="max-h-[85dvh]"
+      panelContentClassName="max-h-[85dvh] overflow-y-auto p-5"
     >
         <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4">
           <h2 className="text-[18px] font-semibold tracking-tight text-white">
@@ -116,7 +118,7 @@ export function ReportSheet({
         </div>
 
         {done ? (
-          <div className="space-y-4">
+          <StatusTransition phaseKey="done" className="space-y-4">
             <p className="text-[14px] leading-relaxed text-white/45">
               Thanks — we received your report. PLAYR will review it.
             </p>
@@ -128,7 +130,7 @@ export function ReportSheet({
             <PrimaryButton fullWidth onClick={onClose}>
               Done
             </PrimaryButton>
-          </div>
+          </StatusTransition>
         ) : (
           <div className="space-y-4">
             <div>
@@ -158,7 +160,7 @@ export function ReportSheet({
               className="glass-input min-h-24 w-full py-2 text-[14px]"
             />
             {error ? (
-              <p className="glass px-3 py-2 text-[13px] text-white">
+              <p className="glass motion-error-in px-3 py-2 text-[13px] text-white">
                 {error}
               </p>
             ) : null}

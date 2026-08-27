@@ -1,6 +1,8 @@
+import { MotionChip } from '@/components/motion/MotionChip'
+import { MotionIconButton } from '@/components/motion/MotionIconButton'
 import { OverlaySheet } from '@/components/ui/OverlaySheet'
+import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
-import { cn } from '@/lib/format'
 import { RADIUS_OPTIONS } from '@/lib/location'
 import type { SportRecord, UiGameStatus } from '@/types/domain'
 import { X } from 'lucide-react'
@@ -56,38 +58,34 @@ export function FilterSheet({
       onClose={onClose}
       closeLabel="Close filters"
       lockScroll
-      panelClassName="max-h-[85dvh] overflow-y-auto p-5"
+      panelClassName="max-h-[85dvh]"
+      panelContentClassName="max-h-[85dvh] overflow-y-auto p-5"
     >
         <div className="mb-6 flex items-center justify-between border-b border-white/10 pb-4">
           <h2 className="text-[18px] font-semibold tracking-tight text-white">
             Filters
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="glass flex h-10 w-10 items-center justify-center text-white/70 transition hover:text-white"
-            aria-label="Close"
-          >
+          <MotionIconButton onClick={onClose} aria-label="Close">
             <X className="h-5 w-5" />
-          </button>
+          </MotionIconButton>
         </div>
 
         <Section title="Sport">
           <div className="flex flex-wrap gap-2">
-            <Chip
+            <MotionChip
               active={value.sport === 'all'}
               onClick={() => onChange({ ...value, sport: 'all' })}
             >
               All
-            </Chip>
+            </MotionChip>
             {sports.map((s) => (
-              <Chip
+              <MotionChip
                 key={s.id}
                 active={value.sport === s.id}
                 onClick={() => onChange({ ...value, sport: s.id })}
               >
                 {s.name}
-              </Chip>
+              </MotionChip>
             ))}
           </div>
         </Section>
@@ -95,13 +93,13 @@ export function FilterSheet({
         <Section title="Distance">
           <div className="flex flex-wrap gap-2">
             {RADIUS_OPTIONS.map((r) => (
-              <Chip
+              <MotionChip
                 key={r.meters}
                 active={value.radiusMeters === r.meters}
                 onClick={() => onChange({ ...value, radiusMeters: r.meters })}
               >
                 {r.label}
-              </Chip>
+              </MotionChip>
             ))}
           </div>
         </Section>
@@ -117,13 +115,13 @@ export function FilterSheet({
                 ['choose', 'Choose date'],
               ] as const
             ).map(([id, label]) => (
-              <Chip
+              <MotionChip
                 key={id}
                 active={value.when === id}
                 onClick={() => onChange({ ...value, when: id })}
               >
                 {label}
-              </Chip>
+              </MotionChip>
             ))}
           </div>
           {value.when === 'choose' ? (
@@ -148,13 +146,13 @@ export function FilterSheet({
                 ['evening', 'Evening'],
               ] as const
             ).map(([id, label]) => (
-              <Chip
+              <MotionChip
                 key={id}
                 active={value.timeBucket === id}
                 onClick={() => onChange({ ...value, timeBucket: id })}
               >
                 {label}
-              </Chip>
+              </MotionChip>
             ))}
           </div>
         </Section>
@@ -162,13 +160,13 @@ export function FilterSheet({
         <Section title="Status">
           <div className="flex flex-wrap gap-2">
             {statuses.map((s) => (
-              <Chip
+              <MotionChip
                 key={s}
                 active={value.status === s}
                 onClick={() => onChange({ ...value, status: s })}
               >
                 {s === 'all' ? 'Open + confirmed' : s.replace('_', ' ')}
-              </Chip>
+              </MotionChip>
             ))}
           </div>
         </Section>
@@ -189,13 +187,9 @@ export function FilterSheet({
           >
             Reset
           </SecondaryButton>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-[8px] bg-white text-cta text-[14px] font-semibold uppercase tracking-[0.06em] transition hover:bg-white/90"
-          >
+          <PrimaryButton fullWidth onClick={onClose}>
             Show games
-          </button>
+          </PrimaryButton>
         </div>
     </OverlaySheet>
   )
@@ -216,27 +210,3 @@ function Section({
   )
 }
 
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'min-h-10 rounded-[8px] border px-3 text-[12px] font-semibold uppercase tracking-[0.06em] transition',
-        active
-          ? 'border-white/30 bg-white text-cta'
-          : 'border-white/10 bg-white/[0.04] text-white/70 hover:border-white/20',
-      )}
-    >
-      {children}
-    </button>
-  )
-}

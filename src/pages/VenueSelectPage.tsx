@@ -1,3 +1,4 @@
+import { FixedChrome } from '@/components/ui/ChromePosition'
 import { GlassChromeBar } from '@/components/ui/GlassChromeBar'
 import { Header } from '@/components/layout/Header'
 import { VenueCard } from '@/components/venue/VenueCard'
@@ -86,30 +87,32 @@ export function VenueSelectPage() {
       </div>
       {typeof document !== 'undefined'
         ? createPortal(
-            <GlassChromeBar
-              className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 p-4 lg:bottom-4 lg:left-[calc(13rem+0.75rem)] lg:right-3"
+            <FixedChrome
+              className="inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-3xl lg:bottom-4 lg:left-[calc(13rem+0.75rem)] lg:right-3"
               style={{
                 paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
               }}
             >
-              <div className="mx-auto flex max-w-3xl flex-col gap-3">
-                <PrimaryButton
-                  fullWidth
-                  disabled={!selected}
-                  onClick={() =>
-                    navigate(selected ? `/host?venueId=${selected}` : '/host')
-                  }
-                >
-                  Use selected venue →
-                </PrimaryButton>
-                <Link
-                  to="/venues/new?returnTo=venue-select"
-                  className="text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
-                >
-                  Can&apos;t find it? Add a venue
-                </Link>
-              </div>
-            </GlassChromeBar>,
+              <GlassChromeBar className="p-4">
+                <div className="mx-auto flex max-w-3xl flex-col gap-3">
+                  <PrimaryButton
+                    fullWidth
+                    disabled={!selected}
+                    onClick={() =>
+                      navigate(selected ? `/host?venueId=${selected}` : '/host')
+                    }
+                  >
+                    Use selected venue →
+                  </PrimaryButton>
+                  <Link
+                    to="/venues/new?returnTo=venue-select"
+                    className="text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
+                  >
+                    Can&apos;t find it? Add a venue
+                  </Link>
+                </div>
+              </GlassChromeBar>
+            </FixedChrome>,
             document.body,
           )
         : null}

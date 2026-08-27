@@ -350,13 +350,13 @@ export function HostPage() {
         </nav>
 
         {error ? (
-          <p className="glass mb-4 px-3 py-2 text-[13px] text-white">
+          <p className="glass motion-error-in mb-4 px-3 py-2 text-[13px] text-white">
             {error}
           </p>
         ) : null}
 
         {step === 1 ? (
-          <div className="space-y-6 animate-fade-up">
+          <div className="space-y-6 motion-step-in">
             <div>
               <h2 className="display-lg">
                 What
@@ -396,7 +396,7 @@ export function HostPage() {
         ) : null}
 
         {step === 2 ? (
-          <div className="space-y-6 animate-fade-up">
+          <div className="space-y-6 motion-step-in">
             <div>
               <h2 className="display-lg">
                 Where
@@ -465,7 +465,7 @@ export function HostPage() {
         ) : null}
 
         {step === 3 ? (
-          <div className="space-y-6 animate-fade-up">
+          <div className="space-y-6 motion-step-in">
             <div>
               <h2 className="display-lg">
                 When
@@ -502,7 +502,7 @@ export function HostPage() {
         ) : null}
 
         {step === 4 ? (
-          <div className="space-y-6 animate-fade-up">
+          <div className="space-y-6 motion-step-in">
             <div>
               <h2 className="display-lg">
                 Who
@@ -569,7 +569,7 @@ export function HostPage() {
         ) : null}
 
         {step === 5 ? (
-          <div className="space-y-6 animate-fade-up">
+          <div className="space-y-6 motion-step-in">
             <div>
               <h2 className="display-lg">Review</h2>
               <p className="mt-1 text-[14px] text-white/45">

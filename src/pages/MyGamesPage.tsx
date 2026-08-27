@@ -1,3 +1,6 @@
+import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { PageContent } from '@/components/motion/PageContent'
+import { MotionTab, MotionTabBar } from '@/components/motion/MotionTab'
 import { GameCard } from '@/components/game/GameCard'
 import { Header } from '@/components/layout/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -71,9 +74,9 @@ export function MyGamesPage() {
     return (
       <div>
         <Header title="My Games" />
-        <div className="page-pad py-8">
-          <div className="glass h-40 animate-pulse" />
-        </div>
+        <PageContent className="page-pad py-8">
+          <LoadingBlock />
+        </PageContent>
       </div>
     )
   }
@@ -82,12 +85,12 @@ export function MyGamesPage() {
     return (
       <div>
         <Header title="My Games" />
-        <div className="page-pad space-y-4 py-6">
+        <PageContent className="page-pad space-y-4 py-6">
           <p className="text-[14px] text-muted">Please sign in to see your games.</p>
           <PrimaryButton fullWidth onClick={() => navigate('/auth?next=/my-games')}>
             Sign in
           </PrimaryButton>
-        </div>
+        </PageContent>
       </div>
     )
   }
@@ -95,8 +98,8 @@ export function MyGamesPage() {
   return (
     <div>
       <Header title="My Games" subtitle="Spots, hosting & history" />
-      <div className="page-pad py-5">
-        <div className="glass flex overflow-hidden">
+      <PageContent className="page-pad py-5">
+        <MotionTabBar>
           {(
             [
               ['upcoming', 'Upcoming'],
@@ -104,20 +107,11 @@ export function MyGamesPage() {
               ['past', 'Past'],
             ] as const
           ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              className={
-                tab === id
-                  ? 'flex-1 bg-white py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-cta'
-                  : 'flex-1 py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white'
-              }
-            >
+            <MotionTab key={id} active={tab === id} onClick={() => setTab(id)}>
               {label}
-            </button>
+            </MotionTab>
           ))}
-        </div>
+        </MotionTabBar>
 
         <div className="mt-6 space-y-3">
           {error ? (
@@ -144,7 +138,7 @@ export function MyGamesPage() {
             the venue — or ask the host if GPS is unavailable.
           </p>
         </div>
-      </div>
+      </PageContent>
     </div>
   )
 }

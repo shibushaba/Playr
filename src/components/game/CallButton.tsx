@@ -24,7 +24,7 @@ export function CallButton({
     ('ontouchstart' in window || navigator.maxTouchPoints > 0)
 
   const base =
-    'inline-flex items-center gap-1.5 rounded-[8px] border border-white/15 bg-white/[0.04] text-[13px] font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08]'
+    'motion-btn inline-flex items-center gap-1.5 rounded-[8px] border border-white/15 bg-white/[0.04] text-[13px] font-semibold text-white hover:border-white/30 hover:bg-white/[0.08]'
 
   if (!isTouch && revealed) {
     return (

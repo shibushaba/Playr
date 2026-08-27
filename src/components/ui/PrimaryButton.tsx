@@ -23,11 +23,11 @@ export function PrimaryButton({
       type={type}
       disabled={disabled}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-[8px] font-semibold tracking-[0.04em] uppercase transition duration-200 active:scale-[0.99] disabled:cursor-not-allowed',
+        'motion-btn inline-flex items-center justify-center gap-2 rounded-[8px] font-semibold tracking-[0.04em] uppercase disabled:cursor-not-allowed',
         size === 'lg' ? 'min-h-12 px-5 text-[13px]' : 'min-h-10 px-4 text-[12px]',
         variant === 'solid' &&
           cn(
-            'bg-white text-cta shadow-[0_8px_24px_rgba(0,0,0,0.20)] hover:bg-white/90',
+            'motion-btn-solid bg-white text-cta shadow-[0_8px_24px_rgba(0,0,0,0.20)] hover:bg-white/90',
             'disabled:bg-white/[0.14] disabled:text-white/55 disabled:shadow-none disabled:border disabled:border-white/20',
           ),
         variant === 'outline' &&

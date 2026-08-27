@@ -20,6 +20,8 @@ type MessageJoin = Tables<'game_messages'> & {
   > | null
 }
 
+export type RealtimeHealth = 'connecting' | 'healthy' | 'unhealthy'
+
 function mapMessage(row: MessageJoin): GameMessage {
   return {
     id: row.id,
@@ -29,6 +31,29 @@ function mapMessage(row: MessageJoin): GameMessage {
     createdAt: row.created_at,
     sender: toPublicProfile(row.profiles, 'Player'),
   }
+}
+
+/** Merge messages by id; preserve created_at ascending order. Prefer richer sender profiles. */
+export function mergeGameMessages(
+  existing: GameMessage[],
+  incoming: GameMessage[],
+): GameMessage[] {
+  const byId = new Map<string, GameMessage>()
+  for (const m of existing) byId.set(m.id, m)
+  for (const m of incoming) {
+    const prev = byId.get(m.id)
+    if (!prev) {
+      byId.set(m.id, m)
+      continue
+    }
+    const prevPlaceholder = prev.sender.displayName === 'Player' && !prev.sender.username
+    const nextRicher =
+      m.sender.displayName !== 'Player' || Boolean(m.sender.username || m.sender.avatarUrl)
+    byId.set(m.id, nextRicher && prevPlaceholder ? m : prev)
+  }
+  return [...byId.values()].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  )
 }
 
 export async function listGameMessages(
@@ -50,6 +75,24 @@ export async function listGameMessages(
   }
 
   return ((data ?? []) as unknown as MessageJoin[]).map(mapMessage)
+}
+
+export async function enrichGameMessageSender(
+  message: GameMessage,
+): Promise<GameMessage> {
+  if (message.sender.displayName !== 'Player' || message.sender.username) {
+    return message
+  }
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, display_name, username, avatar_url, bio')
+    .eq('id', message.senderId)
+    .maybeSingle()
+  if (error || !data) return message
+  return {
+    ...message,
+    sender: toPublicProfile(data, 'Player'),
+  }
 }
 
 export async function sendGameMessage(
@@ -87,7 +130,10 @@ export async function sendGameMessage(
 
 export function subscribeGameMessages(
   gameId: string,
-  onInsert: (message: GameMessage) => void,
+  handlers: {
+    onInsert: (message: GameMessage) => void
+    onHealthChange?: (health: RealtimeHealth) => void
+  },
 ): () => void {
   const channel = supabase
     .channel(`game-chat:${gameId}`)
@@ -101,7 +147,7 @@ export function subscribeGameMessages(
       },
       (payload) => {
         const row = payload.new as Tables<'game_messages'>
-        onInsert({
+        handlers.onInsert({
           id: row.id,
           gameId: row.game_id,
           senderId: row.sender_id,
@@ -115,13 +161,22 @@ export function subscribeGameMessages(
             bio: null,
           },
         })
-        // Refresh profile name in background
-        void listGameMessages(gameId, 1).then(() => {
-          /* noop — caller may reload */
-        })
       },
     )
-    .subscribe()
+    .subscribe((status) => {
+      if (!handlers.onHealthChange) return
+      if (status === 'SUBSCRIBED') {
+        handlers.onHealthChange('healthy')
+      } else if (
+        status === 'CHANNEL_ERROR' ||
+        status === 'TIMED_OUT' ||
+        status === 'CLOSED'
+      ) {
+        handlers.onHealthChange('unhealthy')
+      } else {
+        handlers.onHealthChange('connecting')
+      }
+    })
 
   return () => {
     void supabase.removeChannel(channel)

@@ -1,3 +1,6 @@
+import { StatusTransition } from '@/components/motion/StatusTransition'
+import { SuccessFeedback } from '@/components/motion/SuccessFeedback'
+import { LoadingBlock } from '@/components/motion/LoadingBlock'
 import { ParticipantStatus } from '@/components/game/GameAvailability'
 import { Header } from '@/components/layout/Header'
 import { ProfileCompletionGate } from '@/components/trust/ProfileCompletionGate'
@@ -110,7 +113,7 @@ export function JoinGamePage() {
       <div>
         <Header title="Join game" backTo={id ? `/games/${id}` : '/home'} />
         <div className="page-pad py-8">
-          <div className="glass h-40 animate-pulse" />
+          <LoadingBlock />
         </div>
       </div>
     )
@@ -262,7 +265,7 @@ export function JoinGamePage() {
         </div>
 
         {error ? (
-          <p className="glass px-3 py-2 text-[13px] text-white">
+          <p className="glass motion-error-in px-3 py-2 text-[13px] text-status-danger">
             {error}
           </p>
         ) : null}
@@ -272,139 +275,143 @@ export function JoinGamePage() {
         ) : null}
 
         {phase === 'disclose' ? (
-          <>
-            <section>
-              <h2 className="section-label">Contact disclosure</h2>
-              <p className="mt-3 text-[14px] leading-relaxed text-white/45">
-                Your phone number is visible to the host if you&apos;ve added one
-                on your profile — you can add or change it anytime.
-              </p>
-              {!useWaitlist ? (
-                <p className="mt-2 text-[14px] leading-relaxed text-white/45">
-                  A temporary hold lasts up to 8 minutes — confirm before it
-                  expires.
+          <StatusTransition phaseKey="disclose">
+            <>
+              <section>
+                <h2 className="section-label">Contact disclosure</h2>
+                <p className="mt-3 text-[14px] leading-relaxed text-white/45">
+                  Your phone number is visible to the host if you&apos;ve added one
+                  on your profile — you can add or change it anytime.
                 </p>
-              ) : (
-                <p className="mt-2 text-[14px] leading-relaxed text-white/45">
-                  Waitlist does not count toward capacity. You may be promoted if
-                  a seat opens.
-                </p>
-              )}
-            </section>
+                {!useWaitlist ? (
+                  <p className="mt-2 text-[14px] leading-relaxed text-white/45">
+                    A temporary hold lasts up to 8 minutes — confirm before it
+                    expires.
+                  </p>
+                ) : (
+                  <p className="mt-2 text-[14px] leading-relaxed text-white/45">
+                    Waitlist does not count toward capacity. You may be promoted if
+                    a seat opens.
+                  </p>
+                )}
+              </section>
 
-            <label className="glass flex cursor-pointer items-start gap-3 p-4">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-1 h-4 w-4 accent-white"
-              />
-              <span className="text-[14px] leading-relaxed text-white">
-                I understand and agree
-              </span>
-            </label>
+              <label className="glass flex cursor-pointer items-start gap-3 p-4">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-1 h-4 w-4 accent-white"
+                />
+                <span className="text-[14px] leading-relaxed text-white">
+                  I understand and agree
+                </span>
+              </label>
 
-            <PrimaryButton
-              fullWidth
-              disabled={!agreed || busy}
-              onClick={() => void startReservation()}
-            >
-              {busy
-                ? 'Working…'
-                : useWaitlist
-                  ? 'Join waitlist'
-                  : 'Reserve spot'}
-            </PrimaryButton>
-          </>
+              <PrimaryButton
+                fullWidth
+                disabled={!agreed || busy}
+                onClick={() => void startReservation()}
+              >
+                {busy
+                  ? 'Joining…'
+                  : useWaitlist
+                    ? 'Join waitlist'
+                    : 'Reserve spot'}
+              </PrimaryButton>
+            </>
+          </StatusTransition>
         ) : null}
 
         {phase === 'holding' ? (
-          <section className="glass-elevated glass-status-warning p-6 text-center">
-            <ParticipantStatus label="Spot held" tone="warning" className="justify-center" />
-            <p
-              className={cn(
-                'mt-4 font-[family-name:var(--font-display)] text-[48px] font-semibold tabular-nums tracking-tight',
-                remaining <= 120 ? 'text-status-warning status-emphasis animate-urgency-pulse' : 'text-status-warning',
-              )}
-            >
-              {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
-            </p>
-            <p className="mt-3 text-[13px] text-white/45">
-              {remaining <= 120
-                ? 'Hurry — your spot expires soon.'
-                : 'Confirm before this timer ends.'}
-            </p>
-            <div className="mt-8 space-y-3">
-              <PrimaryButton
-                fullWidth
-                disabled={busy || remaining <= 0}
-                onClick={() => void confirmSpot()}
+          <StatusTransition phaseKey="holding">
+            <section className="glass-elevated glass-status-warning p-6 text-center">
+              <ParticipantStatus label="Spot held" tone="warning" className="justify-center" />
+              <p
+                className={cn(
+                  'mt-4 font-[family-name:var(--font-display)] text-[48px] font-semibold tabular-nums tracking-tight text-status-warning',
+                  remaining <= 30 && 'status-emphasis animate-urgency-pulse',
+                  remaining <= 120 && remaining > 30 && 'status-emphasis',
+                )}
               >
-                {busy ? 'Confirming…' : 'Confirm'}
-              </PrimaryButton>
-              <SecondaryButton
-                fullWidth
-                disabled={busy}
-                onClick={() => void cancelSpot()}
-              >
-                Cancel reservation
-              </SecondaryButton>
-            </div>
-          </section>
+                {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
+              </p>
+              <p className="mt-3 text-[13px] text-white/45">
+                {remaining <= 0
+                  ? 'Reservation expired — refreshing availability…'
+                  : remaining <= 30
+                    ? 'Last seconds — confirm now.'
+                    : remaining <= 120
+                      ? 'Hurry — your spot expires soon.'
+                      : 'Confirm before this timer ends.'}
+              </p>
+              <div className="mt-8 space-y-3">
+                <PrimaryButton
+                  fullWidth
+                  disabled={busy || remaining <= 0}
+                  onClick={() => void confirmSpot()}
+                >
+                  {busy ? 'Confirming…' : 'Confirm'}
+                </PrimaryButton>
+                <SecondaryButton
+                  fullWidth
+                  disabled={busy}
+                  onClick={() => void cancelSpot()}
+                >
+                  Cancel reservation
+                </SecondaryButton>
+              </div>
+            </section>
+          </StatusTransition>
         ) : null}
 
         {phase === 'hosting' ? (
-          <section className="glass-elevated p-6 text-center">
-            <p className="display-lg">You&apos;re hosting.</p>
-            <p className="mt-3 text-[14px] text-white/45">
-              You created this game — manage it from game details.
-            </p>
-            <div className="mt-8 flex flex-col gap-3">
-              <Link to="/my-games">
-                <PrimaryButton fullWidth>My Games</PrimaryButton>
-              </Link>
-              <Link to={`/games/${game.id}`}>
-                <SecondaryButton fullWidth>Game details</SecondaryButton>
-              </Link>
-            </div>
-          </section>
+          <StatusTransition phaseKey="hosting">
+            <section className="glass-elevated p-6 text-center">
+              <p className="display-lg">You&apos;re hosting.</p>
+              <p className="mt-3 text-[14px] text-white/45">
+                You created this game — manage it from game details.
+              </p>
+              <div className="mt-8 flex flex-col gap-3">
+                <Link to="/my-games">
+                  <PrimaryButton fullWidth>My Games</PrimaryButton>
+                </Link>
+                <Link to={`/games/${game.id}`}>
+                  <SecondaryButton fullWidth>Game details</SecondaryButton>
+                </Link>
+              </div>
+            </section>
+          </StatusTransition>
         ) : null}
 
         {phase === 'done' ? (
-          <section className="glass-elevated p-6 text-center">
-            {waitlisted ? (
-              <ParticipantStatus
-                label="On waitlist"
-                tone="warning"
-                className="justify-center"
-              />
-            ) : (
-              <ParticipantStatus
-                label="You're in"
-                tone="success"
-                className="justify-center"
-              />
-            )}
-            <p className="display-lg mt-4">
-              {waitlisted ? "You're on the waitlist." : "You're in."}
-            </p>
-            <p className="mt-3 text-[14px] text-white/45">
-              {waitlisted
-                ? 'You’ll move up if a player leaves.'
-                : 'See you on the field.'}
-            </p>
-            <div className="mt-8 flex flex-col gap-3">
-              <Link to="/my-games">
-                <PrimaryButton fullWidth>My Games</PrimaryButton>
-              </Link>
-              <Link to={`/games/${game.id}`}>
-                <SecondaryButton fullWidth>Game details</SecondaryButton>
-              </Link>
-              <SecondaryButton fullWidth onClick={() => void cancelSpot()}>
-                Leave this game
-              </SecondaryButton>
-            </div>
-          </section>
+          <StatusTransition phaseKey={waitlisted ? 'waitlist-done' : 'join-done'}>
+            <section className="glass-elevated p-6 text-center">
+              {waitlisted ? (
+                <SuccessFeedback label="You're on the waitlist" tone="amber" />
+              ) : (
+                <SuccessFeedback label="You're in" tone="success" />
+              )}
+              <p className="mt-4 text-[14px] text-white/45">
+                {waitlisted
+                  ? 'You’ll move up if a player leaves.'
+                  : 'See you on the field.'}
+              </p>
+              <div className="mt-8 flex flex-col gap-3">
+                <Link to="/my-games">
+                  <PrimaryButton fullWidth>My Games</PrimaryButton>
+                </Link>
+                <Link to={`/games/${game.id}`}>
+                  <SecondaryButton fullWidth>Game details</SecondaryButton>
+                </Link>
+                {!waitlisted ? (
+                  <SecondaryButton fullWidth onClick={() => void cancelSpot()}>
+                    Leave this game
+                  </SecondaryButton>
+                ) : null}
+              </div>
+            </section>
+          </StatusTransition>
         ) : null}
       </div>
     </div>

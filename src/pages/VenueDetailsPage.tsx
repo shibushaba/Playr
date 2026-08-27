@@ -1,3 +1,4 @@
+import { LoadingBlock } from '@/components/motion/LoadingBlock'
 import { GameCard } from '@/components/game/GameCard'
 import { Header } from '@/components/layout/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -29,22 +30,24 @@ export function VenueDetailsPage() {
     async function load() {
       setLoading(true)
       try {
-        const v = await getVenue(id!)
+        const [v, nearby] = await Promise.all([
+          getVenue(id!),
+          location
+            ? getNearbyGames({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                radiusMeters: Math.max(radiusMeters, 25_000),
+                limit: 20,
+              })
+            : Promise.resolve([] as GameListItem[]),
+        ])
         if (!v) {
           if (!cancelled) setError('Venue not found.')
           return
         }
-        if (!cancelled) setVenue(v)
-        if (location) {
-          const nearby = await getNearbyGames({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            radiusMeters: Math.max(radiusMeters, 25_000),
-            limit: 20,
-          })
-          if (!cancelled) {
-            setGames(nearby.filter((g) => g.venue?.id === id))
-          }
+        if (!cancelled) {
+          setVenue(v)
+          setGames(nearby.filter((g) => g.venue?.id === id))
         }
       } catch (e) {
         if (!cancelled) setError(toUserMessage(e, "Couldn't load venue."))
@@ -63,7 +66,7 @@ export function VenueDetailsPage() {
       <div>
         <Header title="Venue" backTo="/explore" />
         <div className="page-pad py-8">
-          <div className="glass h-40 animate-pulse" />
+          <LoadingBlock />
         </div>
       </div>
     )

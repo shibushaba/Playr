@@ -144,7 +144,7 @@ export function GameCard({ game, className, featured, compact }: Props) {
     return (
       <article
         className={cn(
-          'glass-elevated relative overflow-hidden transition duration-200 hover:-translate-y-0.5',
+          'glass-elevated motion-card relative overflow-hidden',
           className,
         )}
       >
@@ -217,7 +217,7 @@ export function GameCard({ game, className, featured, compact }: Props) {
       <Link
         to={`/games/${game.id}`}
         className={cn(
-          'glass relative block overflow-hidden px-4 py-4 transition duration-200 hover:border-white/20 hover:-translate-y-0.5',
+          'glass motion-card relative block overflow-hidden px-4 py-4 hover:border-white/20',
           className,
         )}
       >
@@ -257,7 +257,7 @@ export function GameCard({ game, className, featured, compact }: Props) {
   return (
     <article
       className={cn(
-        'glass relative overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:border-white/18',
+        'glass motion-card relative overflow-hidden hover:border-white/18',
         className,
       )}
     >

@@ -17,11 +17,18 @@ export function SearchBar({
   return (
     <label
       className={cn(
-        'glass flex min-h-12 items-center gap-3 px-4 transition focus-within:border-white/25',
+        'glass motion-glass flex min-h-12 items-center gap-3 px-4 transition-[border-color,background-color,box-shadow] duration-[var(--motion-fast)] focus-within:border-white/25 focus-within:bg-white/[0.06]',
         className,
       )}
     >
-      <Search className="h-4 w-4 shrink-0 text-white/40" strokeWidth={1.75} aria-hidden />
+      <Search
+        className={cn(
+          'h-4 w-4 shrink-0 transition-opacity duration-[var(--motion-fast)]',
+          value ? 'text-white/55' : 'text-white/40',
+        )}
+        strokeWidth={1.75}
+        aria-hidden
+      />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -36,7 +43,7 @@ export function SearchBar({
           type="button"
           aria-label="Clear search"
           onClick={() => onChange('')}
-          className="p-1 text-white/40 hover:text-white"
+          className="motion-icon-btn motion-clear-in h-8 w-8 rounded-[6px] border-0 bg-transparent p-0 text-white/40 shadow-none hover:bg-white/[0.06]"
         >
           <X className="h-4 w-4" />
         </button>

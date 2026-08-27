@@ -212,6 +212,10 @@ export async function listDiscoverableGames(options?: {
     .order('game_date', { ascending: true })
     .order('start_time', { ascending: true })
 
+  if (options?.sportId) {
+    query = query.eq('sport_id', options.sportId)
+  }
+
   const { data, error } = await query
 
   if (error) {
@@ -220,9 +224,6 @@ export async function listDiscoverableGames(options?: {
   }
 
   let rows = (data ?? []) as unknown as GameJoin[]
-  if (options?.sportId) {
-    rows = rows.filter((r) => r.sport_id === options.sportId)
-  }
   if (options?.sportSlug) {
     rows = rows.filter((r) => r.sports?.slug === options.sportSlug)
   }

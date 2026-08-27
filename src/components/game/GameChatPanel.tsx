@@ -1,13 +1,18 @@
+import { LoadingBall } from '@/components/motion/LoadingBall'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { toUserMessage } from '@/lib/errors'
+import { cn } from '@/lib/format'
 import {
+  enrichGameMessageSender,
   listGameMessages,
+  mergeGameMessages,
   sendGameMessage,
   subscribeGameMessages,
   type GameMessage,
+  type RealtimeHealth,
 } from '@/services/chat'
 import { Flag } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface Props {
   gameId: string
@@ -15,6 +20,8 @@ interface Props {
   readOnly: boolean
   onReportMessage: (messageId: string, senderId: string) => void
 }
+
+const POLL_MS = 12_000
 
 export function GameChatPanel({
   gameId,
@@ -28,14 +35,61 @@ export function GameChatPanel({
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const realtimeHealthRef = useRef<RealtimeHealth>('connecting')
+  const pollRef = useRef<number | null>(null)
+
+  const applyMessages = useCallback((incoming: GameMessage[]) => {
+    setMessages((prev) => mergeGameMessages(prev, incoming))
+  }, [])
+
+  const refreshMessages = useCallback(async () => {
+    const list = await listGameMessages(gameId)
+    applyMessages(list)
+    return list
+  }, [applyMessages, gameId])
+
+  const handleRealtimeInsert = useCallback(
+    (msg: GameMessage) => {
+      applyMessages([msg])
+      void enrichGameMessageSender(msg)
+        .then((enriched) => applyMessages([enriched]))
+        .catch(() => undefined)
+    },
+    [applyMessages],
+  )
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current != null) {
+      window.clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }, [])
+
+  const startPolling = useCallback(() => {
+    if (pollRef.current != null) return
+    pollRef.current = window.setInterval(() => {
+      void refreshMessages().catch(() => undefined)
+    }, POLL_MS)
+  }, [refreshMessages])
+
+  const handleHealthChange = useCallback(
+    (health: RealtimeHealth) => {
+      realtimeHealthRef.current = health
+      if (health === 'healthy') {
+        stopPolling()
+        return
+      }
+      if (health === 'unhealthy') {
+        startPolling()
+      }
+    },
+    [startPolling, stopPolling],
+  )
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    void listGameMessages(gameId)
-      .then((list) => {
-        if (!cancelled) setMessages(list)
-      })
+    void refreshMessages()
       .catch((e) => {
         if (!cancelled) setError(toUserMessage(e, "Couldn't load chat."))
       })
@@ -43,32 +97,30 @@ export function GameChatPanel({
         if (!cancelled) setLoading(false)
       })
 
-    const unsub = subscribeGameMessages(gameId, (msg) => {
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev
-        return [...prev, msg]
-      })
-      void listGameMessages(gameId)
-        .then((list) => {
-          if (!cancelled) setMessages(list)
-        })
-        .catch(() => undefined)
+    const unsub = subscribeGameMessages(gameId, {
+      onInsert: (msg) => {
+        if (!cancelled) handleRealtimeInsert(msg)
+      },
+      onHealthChange: (health) => {
+        if (!cancelled) handleHealthChange(health)
+      },
     })
-
-    const poll = window.setInterval(() => {
-      void listGameMessages(gameId)
-        .then((list) => {
-          if (!cancelled) setMessages(list)
-        })
-        .catch(() => undefined)
-    }, 12_000)
 
     return () => {
       cancelled = true
       unsub()
-      window.clearInterval(poll)
+      stopPolling()
     }
-  }, [gameId])
+  }, [gameId, handleHealthChange, handleRealtimeInsert, refreshMessages, stopPolling])
+
+  useEffect(() => {
+    const fallback = window.setTimeout(() => {
+      if (realtimeHealthRef.current !== 'healthy') {
+        startPolling()
+      }
+    }, 5_000)
+    return () => window.clearTimeout(fallback)
+  }, [gameId, startPolling])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -81,7 +133,7 @@ export function GameChatPanel({
     setError(null)
     try {
       const msg = await sendGameMessage(gameId, text)
-      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]))
+      applyMessages([msg])
       setDraft('')
     } catch (e) {
       setError(toUserMessage(e, "Couldn't send message."))
@@ -98,9 +150,8 @@ export function GameChatPanel({
 
       <div className="max-h-72 flex-1 space-y-3 overflow-y-auto p-4">
         {loading ? (
-          <div className="space-y-2 py-4">
-            <div className="glass h-8 w-2/3 animate-pulse" />
-            <div className="glass ml-auto h-8 w-1/2 animate-pulse" />
+          <div className="flex justify-center py-10">
+            <LoadingBall size="sm" />
           </div>
         ) : messages.length === 0 ? (
           <p className="py-8 text-center text-[13px] text-white/45">
@@ -112,7 +163,7 @@ export function GameChatPanel({
           messages.map((m) => {
             const mine = m.senderId === currentUserId
             return (
-              <div key={m.id} className={mine ? 'text-right' : 'text-left'}>
+              <div key={m.id} className={cn('motion-message-in', mine ? 'text-right' : 'text-left')}>
                 <div
                   className="mb-0.5 flex items-center gap-2"
                   style={{ justifyContent: mine ? 'flex-end' : 'flex-start' }}
