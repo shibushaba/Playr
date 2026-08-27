@@ -3,6 +3,7 @@ import { AnimatedProgress } from '@/components/motion/AnimatedProgress'
 import { StatusTransition } from '@/components/motion/StatusTransition'
 import {
   getOccupancy,
+  occupancyDotClass,
   occupancyGlowStyle,
   occupancyProgressClass,
   occupancyToneClass,
@@ -50,7 +51,10 @@ export function GameAvailability({
           toneClass,
         )}
       >
-        <span className="status-dot shrink-0" aria-hidden />
+        <span
+          className={cn('status-dot shrink-0', occupancyDotClass(occupancy.state))}
+          aria-hidden
+        />
         <span>{occupancy.label}</span>
       </span>
     </StatusTransition>

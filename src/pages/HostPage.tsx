@@ -271,6 +271,7 @@ export function HostPage() {
     setBusy(true)
     setError(null)
     setBookingResetNotice(false)
+    let createdGameId: string | null = null
     try {
       const game = await createGame({
         title,
@@ -285,11 +286,19 @@ export function HostPage() {
         playerShare: share ? Number(share) : null,
         visibility,
       })
+      createdGameId = game.id
       await confirmGameVenueBooking(game.id)
       await publishGame(game.id)
       navigate(`/games/${game.id}`)
     } catch (e) {
-      setError(toUserMessage(e, "Couldn't publish game. Try again."))
+      const message = toUserMessage(e, "Couldn't publish game. Try again.")
+      if (createdGameId) {
+        navigate(`/games/${createdGameId}`, {
+          state: { publishError: message },
+        })
+        return
+      }
+      setError(message)
     } finally {
       setBusy(false)
     }

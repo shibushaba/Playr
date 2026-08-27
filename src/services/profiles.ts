@@ -60,7 +60,18 @@ export async function getMyProfile(): Promise<Tables<'profiles'> | null> {
   const { data, error } = await supabase.rpc('get_my_profile')
   if (!error && data) return data
   if (error) logDevError('getMyProfile', error)
-  return fetchMyProfileFallback(user)
+
+  const fallback = await fetchMyProfileFallback(user)
+  if (!fallback) return null
+
+  const metaPhone =
+    typeof user.user_metadata?.phone === 'string'
+      ? normalizePhoneE164(user.user_metadata.phone)
+      : null
+  if (metaPhone && !fallback.phone) {
+    return { ...fallback, phone: metaPhone }
+  }
+  return fallback
 }
 
 export async function getPublicProfile(userId: string): Promise<PublicProfile | null> {
@@ -282,7 +293,12 @@ async function updateMyProfileDirect(
   }
 
   const reloaded = await getMyProfile()
-  if (reloaded) return reloaded
+  if (reloaded) {
+    if (patch.phone && !reloaded.phone) {
+      return { ...reloaded, phone: patch.phone }
+    }
+    return reloaded
+  }
 
   return buildProfileRow(
     {
@@ -338,24 +354,18 @@ export async function removeMyAvatar(): Promise<Tables<'profiles'>> {
 
 export async function ensureProfileAfterSignup(input: {
   displayName: string
+  phone: string
   username?: string
-}): Promise<void> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return
+}): Promise<Tables<'profiles'>> {
+  const phone = normalizePhoneE164(input.phone)
+  if (!phone) throw new AppError('Enter a valid phone number.', 'INVALID_PHONE')
 
-  const { error } = await supabase.from('profiles').insert({
-    id: user.id,
-    display_name: input.displayName.trim(),
-    username: input.username?.trim() || null,
-    is_active: true,
+  await ensureMyProfile()
+  return updateMyProfile({
+    displayName: input.displayName.trim(),
+    phone,
+    username: input.username,
   })
-
-  if (error && error.code !== '23505') {
-    logDevError('ensureProfileAfterSignup', error)
-    throw new AppError("Couldn't save your profile. Try again.")
-  }
 }
 
 async function resizeAvatar(file: File): Promise<Blob> {

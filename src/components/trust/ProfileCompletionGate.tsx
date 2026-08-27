@@ -36,8 +36,14 @@ export function ProfileCompletionGate({ requiredFor }: Props) {
   const completion = getProfileCompletion(profile, user)
   const title =
     requiredFor === 'host'
-      ? 'Confirm your email to host'
-      : 'Add your name to continue'
+      ? completion.status === 'email_required'
+        ? 'Confirm your email to host'
+        : completion.status === 'phone_required'
+          ? 'Add your phone to host'
+          : 'Complete your profile to host'
+      : completion.status === 'phone_required'
+        ? 'Add your phone to continue'
+        : 'Add your name to continue'
 
   async function sendEmailVerification() {
     setBusy(true)

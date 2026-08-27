@@ -28,7 +28,7 @@ export function PrimaryButton({
         variant === 'solid' &&
           cn(
             'motion-btn-solid bg-white text-cta shadow-[0_8px_24px_rgba(0,0,0,0.20)] hover:bg-white/90',
-            'disabled:bg-white/[0.14] disabled:text-white/55 disabled:shadow-none disabled:border disabled:border-white/20',
+            'disabled:bg-white/[0.08] disabled:text-white/50 disabled:shadow-none disabled:border disabled:border-white/15',
           ),
         variant === 'outline' &&
           cn(

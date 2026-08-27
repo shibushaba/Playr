@@ -288,11 +288,16 @@
   }
 
   /* White CTAs must stay black — do not inherit the remap above */
-  .text-cta,
-  button.bg-white,
-  .bg-white.text-black,
-  a.bg-white {
+  .text-cta:not(:disabled),
+  button.bg-white:not(:disabled),
+  .bg-white.text-black:not(:disabled),
+  a.bg-white:not(.disabled) {
     color: #08090a !important;
+  }
+
+  button.bg-white:disabled,
+  .text-cta:disabled {
+    color: rgba(255, 255, 255, 0.55) !important;
   }
   .bg-gray-50 {
     background-color: rgba(255, 255, 255, 0.04) !important;

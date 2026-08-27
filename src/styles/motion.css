@@ -505,6 +505,108 @@
   }
 }
 
+/* ── Unread message dot (chat tab, etc.) ── */
+.unread-dot {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  vertical-align: middle;
+  pointer-events: none;
+}
+
+.unread-dot-ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--status-success);
+  animation: dot-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.unread-dot-core {
+  position: absolute;
+  inset: 2px;
+  border-radius: 9999px;
+  background: var(--status-success);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.75);
+  animation: dot-glow-success 2s ease-in-out infinite;
+}
+
+/* ── Occupancy status dot (Available, Filling, etc.) ── */
+.status-dot.status-dot-animated {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: transparent;
+  box-shadow: none;
+}
+
+.status-dot.status-dot-animated::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  animation: dot-glow 2s ease-in-out infinite;
+}
+
+.status-dot.status-dot-animated--ping::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.5;
+  animation: dot-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.status-dot.status-dot-animated--urgent::after {
+  animation: dot-glow 1.15s ease-in-out infinite;
+}
+
+@keyframes dot-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  75%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@keyframes dot-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 4px color-mix(in srgb, currentColor 55%, transparent);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 8px currentColor,
+      0 0 14px color-mix(in srgb, currentColor 40%, transparent);
+    transform: scale(1.1);
+  }
+}
+
+/* Unread dot uses fixed success green (not currentColor parent). */
+@keyframes dot-glow-success {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(52, 211, 153, 0.55);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 8px rgba(52, 211, 153, 1),
+      0 0 14px rgba(52, 211, 153, 0.4);
+    transform: scale(1.1);
+  }
+}
+
 /* ── Chat message ── */
 .motion-message-in {
   animation: motion-message-in var(--motion-fast) var(--ease-smooth) both;
@@ -713,7 +815,11 @@
   }
 
   .animate-live-pulse .status-dot,
-  .animate-urgency-pulse {
+  .animate-urgency-pulse,
+  .unread-dot-ping,
+  .unread-dot-core,
+  .status-dot.status-dot-animated::before,
+  .status-dot.status-dot-animated::after {
     animation: none !important;
   }
 }

@@ -65,12 +65,31 @@ interface VenueProps {
 }
 
 export function VenueStatusBadge({ status, className }: VenueProps) {
-  const label =
-    status === 'community_added'
-      ? 'Community'
-      : status === 'verified'
-        ? 'Verified'
-        : 'Pending'
+  if (status === 'verified') {
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-status-success',
+          className,
+        )}
+      >
+        <span aria-hidden>✓</span> Verified
+      </span>
+    )
+  }
+
+  if (status === 'community_added') {
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center text-[11px] font-semibold uppercase tracking-[0.1em] text-status-warning',
+          className,
+        )}
+      >
+        Community added
+      </span>
+    )
+  }
 
   return (
     <span
@@ -79,7 +98,7 @@ export function VenueStatusBadge({ status, className }: VenueProps) {
         className,
       )}
     >
-      {label}
+      Pending
     </span>
   )
 }

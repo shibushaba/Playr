@@ -1,6 +1,7 @@
-import { ensureMyProfile, ensureProfileAfterSignup, getMyProfile } from '@/services/profiles'
+import { ensureMyProfile, ensureProfileAfterSignup, getMyProfile, updateMyProfile } from '@/services/profiles'
 import { logDevError } from '@/lib/errors'
 import { authErrorMessage } from '@/lib/authErrors'
+import { normalizePhoneE164 } from '@/lib/phone'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/database'
 import type { Session, User } from '@supabase/supabase-js'
@@ -24,6 +25,7 @@ interface AuthContextValue {
     email: string
     password: string
     displayName: string
+    phone: string
   }) => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -43,10 +45,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser()
+      if (!authUser) {
+        setProfile(null)
+        return
+      }
+
       let p = await getMyProfile()
       if (!p) {
         p = await ensureMyProfile()
       }
+
+      if (!p.phone && authUser.user_metadata?.phone) {
+        const metaPhone = normalizePhoneE164(String(authUser.user_metadata.phone))
+        if (metaPhone) {
+          p = await updateMyProfile({ phone: metaPhone })
+        }
+      }
+
       setProfile(p)
     } catch (err) {
       logDevError('refreshProfile', err)
@@ -103,12 +121,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signUp = useCallback(
-    async (input: { email: string; password: string; displayName: string }) => {
+    async (input: { email: string; password: string; displayName: string; phone: string }) => {
       if (!isSupabaseConfigured) {
         throw new Error(
           'Server not connected. The live app is missing Supabase settings — redeploy Vercel after adding env vars.',
         )
       }
+
+      const phoneE164 = normalizePhoneE164(input.phone)
+      if (!phoneE164) {
+        throw new Error('Enter a valid 10-digit mobile number.')
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: input.email,
         password: input.password,
@@ -116,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           emailRedirectTo: `${window.location.origin}/auth`,
           data: {
             display_name: input.displayName,
+            phone: phoneE164,
           },
         },
       })
@@ -129,7 +154,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         )
       }
       if (data.user) {
-        await ensureProfileAfterSignup({ displayName: input.displayName })
+        const savedProfile = await ensureProfileAfterSignup({
+          displayName: input.displayName,
+          phone: phoneE164,
+        })
+        setProfile(savedProfile)
       }
     },
     [],

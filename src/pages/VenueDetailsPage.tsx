@@ -14,13 +14,19 @@ import type { GameListItem, VenueRecord } from '@/types/domain'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { VenueStatusBadge } from '@/components/game/StatusBadge'
+import { VenueEditSheet } from '@/components/venue/VenueEditSheet'
+import { useAuth } from '@/contexts/AuthContext'
+import { getVenueRatingSummary, type VenueRatingSummary } from '@/services/community'
 
 export function VenueDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { location, radiusMeters } = useLocationDiscovery()
   const [venue, setVenue] = useState<VenueRecord | null>(null)
   const [games, setGames] = useState<GameListItem[]>([])
+  const [rating, setRating] = useState<VenueRatingSummary | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -30,7 +36,7 @@ export function VenueDetailsPage() {
     async function load() {
       setLoading(true)
       try {
-        const [v, nearby] = await Promise.all([
+        const [v, nearby, ratingSummary] = await Promise.all([
           getVenue(id!),
           location
             ? getNearbyGames({
@@ -40,6 +46,7 @@ export function VenueDetailsPage() {
                 limit: 20,
               })
             : Promise.resolve([] as GameListItem[]),
+          getVenueRatingSummary(id!),
         ])
         if (!v) {
           if (!cancelled) setError('Venue not found.')
@@ -48,6 +55,7 @@ export function VenueDetailsPage() {
         if (!cancelled) {
           setVenue(v)
           setGames(nearby.filter((g) => g.venue?.id === id))
+          setRating(ratingSummary)
         }
       } catch (e) {
         if (!cancelled) setError(toUserMessage(e, "Couldn't load venue."))
@@ -108,6 +116,18 @@ export function VenueDetailsPage() {
         <header className="border-b border-white/10 pb-6">
           <div className="flex flex-wrap items-center gap-3">
             <VenueStatusBadge status={venue.status} />
+            {venue.status === 'community_added' ? (
+              <span className="text-[12px] text-white/45">
+                Added by the PLAYR community. Verification is pending.
+              </span>
+            ) : null}
+            {rating?.display === 'rated' && rating.average_rating != null ? (
+              <span className="text-[12px] text-white/55">
+                ★ {rating.average_rating} ({rating.review_count} reviews)
+              </span>
+            ) : rating?.display === 'insufficient' ? (
+              <span className="text-[12px] text-white/45">Not enough reviews</span>
+            ) : null}
             {distance ? (
               <span className="text-[12px] uppercase tracking-[0.06em] text-white/45">
                 {distance}
@@ -178,6 +198,19 @@ export function VenueDetailsPage() {
         >
           Host a game here
         </PrimaryButton>
+
+        {user && (venue.status === 'community_added' || venue.status === 'verified') ? (
+          <SecondaryButton fullWidth type="button" onClick={() => setEditOpen(true)}>
+            Edit venue
+          </SecondaryButton>
+        ) : null}
+
+        <VenueEditSheet
+          open={editOpen}
+          venue={venue}
+          onClose={() => setEditOpen(false)}
+          onSubmitted={() => setEditOpen(false)}
+        />
 
         <section>
           <h2 className="section-label mb-4">

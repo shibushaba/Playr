@@ -28,6 +28,7 @@ export function AuthPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [name, setName] = useState('')
+  const [phoneLocal, setPhoneLocal] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -51,10 +52,14 @@ export function AuthPage() {
         if (password.length < 6) {
           throw new Error('Password must be at least 6 characters.')
         }
+        if (phoneLocal.trim().length !== 10) {
+          throw new Error('Enter your 10-digit mobile number.')
+        }
         await signUp({
           email: email.trim(),
           password,
           displayName: name.trim(),
+          phone: phoneLocal.trim(),
         })
       }
       navigate(
@@ -104,16 +109,37 @@ export function AuthPage() {
 
         <form className="mt-8 space-y-5" onSubmit={onSubmit}>
           {mode === 'signup' ? (
-            <Field label="Full name">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="field"
-                placeholder="Your name"
-                autoComplete="name"
-                required
-              />
-            </Field>
+            <>
+              <Field label="Full name">
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="field"
+                  placeholder="Your name"
+                  autoComplete="name"
+                  required
+                />
+              </Field>
+              <Field label="Mobile number">
+                <div className="field flex min-h-12 items-center gap-2 !px-3">
+                  <span className="text-[14px] text-white/45">+91</span>
+                  <input
+                    value={phoneLocal}
+                    onChange={(e) =>
+                      setPhoneLocal(e.target.value.replace(/\D/g, '').slice(0, 10))
+                    }
+                    className="w-full bg-transparent text-[14px] text-white outline-none placeholder:text-white/35"
+                    placeholder="9876543210"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    required
+                  />
+                </div>
+                <p className="mt-1.5 text-[12px] text-white/40">
+                  Required. Hosts and players use this to coordinate games.
+                </p>
+              </Field>
+            </>
           ) : null}
           <Field label="Email">
             <input
@@ -172,8 +198,8 @@ export function AuthPage() {
         </form>
 
         <p className="mt-10 text-center text-[12px] leading-relaxed text-white/45">
-          By continuing you agree that hosts may see your phone if you add one
-          and join a game, and that PLAYR does not process payments.{' '}
+          By continuing you agree that your phone may be shared with hosts and
+          players in games you join, and that PLAYR does not process payments.{' '}
           <Link to="/home" className="font-semibold text-white underline-offset-2 hover:underline">
             Browse games
           </Link>

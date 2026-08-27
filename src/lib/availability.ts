@@ -109,6 +109,19 @@ export function occupancyProgressClass(tone: SemanticTone): string {
   }
 }
 
+export function occupancyDotClass(state: OccupancyState): string {
+  switch (state) {
+    case 'available':
+      return 'status-dot-animated status-dot-animated--ping'
+    case 'filling':
+      return 'status-dot-animated'
+    case 'almost_full':
+      return 'status-dot-animated status-dot-animated--urgent'
+    default:
+      return ''
+  }
+}
+
 export function occupancyGlowStyle(state: OccupancyState): Record<string, string> {
   const opacity = state === 'almost_full' ? 0.08 : state === 'full' ? 0.07 : 0.055
   const topOpacity = opacity * 0.75

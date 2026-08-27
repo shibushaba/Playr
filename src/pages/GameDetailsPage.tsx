@@ -7,6 +7,8 @@ import { GameChatPanel } from '@/components/game/GameChatPanel'
 import { GameAvailability, ParticipantStatus } from '@/components/game/GameAvailability'
 import { PlayerCount } from '@/components/game/PlayerCount'
 import { ReportSheet } from '@/components/game/ReportSheet'
+import { RosterCallButton } from '@/components/game/RosterCallButton'
+import { GameFeedbackCard } from '@/components/game/GameFeedbackCard'
 import { StatusBadge } from '@/components/game/StatusBadge'
 import { VenueReachPanel } from '@/components/game/VenueReachPanel'
 import { Header } from '@/components/layout/Header'
@@ -16,6 +18,7 @@ import { GlassChromeBar } from '@/components/ui/GlassChromeBar'
 import { OverlaySheet } from '@/components/ui/OverlaySheet'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
+import { UnreadDot } from '@/components/ui/UnreadDot'
 import { useAuth } from '@/contexts/AuthContext'
 import { toUserMessage } from '@/lib/errors'
 import { resolveVenueDirectionsUrl } from '@/lib/maps'
@@ -40,7 +43,7 @@ import {
   type CheckInWindow,
   type GameCheckIn,
 } from '@/services/checkin'
-import { getContactPhone, getGameDetail } from '@/services/games'
+import { getGameDetail, loadRosterContactPhones } from '@/services/games'
 import { createGameInvite } from '@/services/invites'
 import {
   confirmGameVenueBooking,
@@ -57,14 +60,16 @@ import {
   Shield,
   Users,
 } from 'lucide-react'
+import { useGameChatUnread } from '@/hooks/useGameChatUnread'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 type Tab = 'players' | 'chat' | 'location'
 
 export function GameDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const [game, setGame] = useState<GameDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -86,6 +91,14 @@ export function GameDetailsPage() {
   } | null>(null)
   const [confirmNoShow, setConfirmNoShow] = useState<string | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
+
+  useEffect(() => {
+    const state = location.state as { publishError?: string } | null
+    if (state?.publishError) {
+      setActionError(state.publishError)
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location.pathname, location.state, navigate])
 
   const reload = useCallback(async () => {
     if (!id) return
@@ -165,34 +178,42 @@ export function GameDetailsPage() {
         game.myParticipation?.role === 'co_host'),
   )
 
+  const participantIdsKey = useMemo(
+    () => (game?.players ?? []).map((p) => p.userId).sort().join(','),
+    [game?.players],
+  )
+
   useEffect(() => {
     if (!game || !user || !isHost) return
     let cancelled = false
-    async function loadPhones() {
-      const roster = game!.players.filter((p) =>
-        ['confirmed', 'reserved', 'attended'].includes(p.status),
-      )
-      const entries: Record<string, string> = {}
-      await Promise.all(
-        roster.map(async (p) => {
-          if (p.userId === user!.id) return
-          const phone = await getContactPhone(game!.id, p.userId)
-          if (phone) entries[p.userId] = phone
-        }),
-      )
-      if (!cancelled) setPlayerPhones(entries)
-    }
-    void loadPhones()
+    void loadRosterContactPhones(
+      game.id,
+      game.players.map((p) => p.userId),
+      game.hostId,
+    ).then((phones) => {
+      if (!cancelled) setPlayerPhones(phones)
+    })
     return () => {
       cancelled = true
     }
-  }, [game, user, isHost])
+  }, [game, user, isHost, participantIdsKey])
 
   const checkInByUser = useMemo(() => {
     const map = new Map<string, GameCheckIn>()
     for (const c of checkIns) map.set(c.userId, c)
     return map
   }, [checkIns])
+
+  const chatUnreadEnabled = Boolean(
+    user &&
+      game &&
+      game.dbStatus !== 'cancelled' &&
+      (isHost ||
+        game.myParticipation?.status === 'confirmed' ||
+        game.myParticipation?.status === 'attended'),
+  )
+
+  const chatUnread = useGameChatUnread(id, user?.id, chatUnreadEnabled, tab === 'chat')
 
   if (loading) {
     return (
@@ -567,6 +588,8 @@ export function GameDetailsPage() {
           </div>
         ) : null}
 
+        {isCompleted ? <GameFeedbackCard gameId={game.id} /> : null}
+
         {/* Venue */}
         <section className="border-y border-white/10 py-5">
           <p className="label-caps">Venue</p>
@@ -695,7 +718,7 @@ export function GameDetailsPage() {
               </PrimaryButton>
             ) : null}
             {game.hostPhone && !isHost ? (
-              <CallButton phone={game.hostPhone} label="Call Host" />
+              <CallButton phone={game.hostPhone} label="Call host" />
             ) : null}
             {canChat ? (
               <SecondaryButton
@@ -705,6 +728,7 @@ export function GameDetailsPage() {
                 <span className="inline-flex items-center gap-1.5">
                   <MessageCircle className="h-4 w-4" />
                   Chat
+                  {chatUnread ? <UnreadDot /> : null}
                 </span>
               </SecondaryButton>
             ) : null}
@@ -767,7 +791,7 @@ export function GameDetailsPage() {
           <div className="flex items-center justify-between">
             <p className="label-caps">Host</p>
             {game.hostPhone && !isHost ? (
-              <CallButton phone={game.hostPhone} label="Call Host" />
+              <CallButton phone={game.hostPhone} label="Call host" />
             ) : null}
           </div>
           <div className="mt-3">
@@ -804,6 +828,7 @@ export function GameDetailsPage() {
               icon={<MessageCircle className="h-4 w-4" />}
               label="Chat"
               disabled={!canChat && !isHost}
+              showUnreadDot={chatUnread}
             />
           </GlassChromeBar>
         ) : null}
@@ -880,11 +905,21 @@ export function GameDetailsPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                      {isHost && playerPhones[p.userId] ? (
-                        <CallButton
+                      {isHost && p.userId !== user?.id ? (
+                        <RosterCallButton
+                          gameId={game.id}
+                          userId={p.userId}
+                          displayName={p.profile.displayName}
                           phone={playerPhones[p.userId]}
-                          label="Call"
-                          compact
+                        />
+                      ) : null}
+                      {!isHost &&
+                      p.role === 'host' &&
+                      game.hostPhone ? (
+                        <CallButton
+                          phone={game.hostPhone}
+                          label="Call host"
+                          iconOnly
                         />
                       ) : null}
                       {isHost &&
@@ -1266,17 +1301,22 @@ function TabBtn({
   icon,
   label,
   disabled,
+  showUnreadDot,
 }: {
   active: boolean
   onClick: () => void
   icon: ReactNode
   label: string
   disabled?: boolean
+  showUnreadDot?: boolean
 }) {
   return (
     <MotionTabPill active={active} onClick={onClick} disabled={disabled}>
       {icon}
-      {label}
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {showUnreadDot ? <UnreadDot /> : null}
+      </span>
     </MotionTabPill>
   )
 }

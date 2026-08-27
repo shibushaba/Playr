@@ -18,7 +18,7 @@ import { isSupabaseConfigured } from '@/lib/supabase'
 import { getNearbyGames, getNearbyVenues } from '@/services/discovery'
 import { listSports } from '@/services/sports'
 import type { GameListItem, SportRecord, VenueRecord } from '@/types/domain'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Plus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -226,6 +226,12 @@ export function HomePage() {
         <h1 className="display-lg mt-2 max-w-md">
           What are you playing?
         </h1>
+        <Link to="/host" className="mt-6 block">
+          <PrimaryButton fullWidth className="gap-2">
+            <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+            Create a game
+          </PrimaryButton>
+        </Link>
         </FadeIn>
       </header>
 

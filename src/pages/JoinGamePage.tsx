@@ -296,17 +296,28 @@ export function JoinGamePage() {
                 )}
               </section>
 
-              <label className="glass flex cursor-pointer items-start gap-3 p-4">
+              <label
+                className={cn(
+                  'glass flex cursor-pointer items-start gap-3 p-4 transition-colors',
+                  agreed && 'border-white/20 bg-white/[0.06]',
+                )}
+              >
                 <input
                   type="checkbox"
                   checked={agreed}
                   onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-1 h-4 w-4 accent-white"
+                  className="mt-0.5 h-5 w-5 shrink-0 rounded border border-white/30 bg-transparent accent-white"
                 />
                 <span className="text-[14px] leading-relaxed text-white">
                   I understand and agree
                 </span>
               </label>
+
+              {!agreed ? (
+                <p className="text-center text-[12px] text-white/40">
+                  Check the box above to {useWaitlist ? 'join the waitlist' : 'reserve your spot'}.
+                </p>
+              ) : null}
 
               <PrimaryButton
                 fullWidth

@@ -513,7 +513,51 @@ export async function getContactPhone(
     logDevError('getContactPhone', error)
     return null
   }
-  return data
+  return typeof data === 'string' && data.trim() ? data : null
+}
+
+export async function loadRosterContactPhones(
+  gameId: string,
+  participantUserIds: string[],
+  hostUserId: string,
+): Promise<Record<string, string>> {
+  const others = participantUserIds.filter((id) => id !== hostUserId)
+  if (others.length === 0) return {}
+
+  const batch = await listRosterContactPhones(gameId)
+  const map: Record<string, string> = { ...batch }
+
+  const missing = others.filter((id) => !map[id])
+  if (missing.length === 0) return map
+
+  await Promise.all(
+    missing.map(async (userId) => {
+      const phone = await getContactPhone(gameId, userId)
+      if (phone) map[userId] = phone
+    }),
+  )
+
+  return map
+}
+
+export async function listRosterContactPhones(
+  gameId: string,
+): Promise<Record<string, string>> {
+  const { data, error } = await supabase.rpc('list_game_roster_contact_phones', {
+    p_game_id: gameId,
+  })
+  if (error) {
+    logDevError('listRosterContactPhones', error)
+    return {}
+  }
+
+  const map: Record<string, string> = {}
+  for (const row of data ?? []) {
+    if (row.user_id && row.phone) {
+      map[row.user_id] = row.phone
+    }
+  }
+  return map
 }
 
 export type { PublicProfile }

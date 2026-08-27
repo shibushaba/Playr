@@ -81,6 +81,42 @@ const JoinGroupInvitePage = lazy(() =>
     default: m.JoinGroupInvitePage,
   })),
 )
+const AdminGate = lazy(() =>
+  import('@/pages/admin/AdminGate').then((m) => ({ default: m.AdminGate })),
+)
+const AdminLayout = lazy(() =>
+  import('@/layouts/AdminLayout').then((m) => ({ default: m.AdminLayout })),
+)
+const AdminOverviewPage = lazy(() =>
+  import('@/pages/admin/AdminOverviewPage').then((m) => ({
+    default: m.AdminOverviewPage,
+  })),
+)
+const AdminVenuesReviewPage = lazy(() =>
+  import('@/pages/admin/AdminVenuesReviewPage').then((m) => ({
+    default: m.AdminVenuesReviewPage,
+  })),
+)
+const AdminReportsPage = lazy(() =>
+  import('@/pages/admin/AdminReportsPage').then((m) => ({
+    default: m.AdminReportsPage,
+  })),
+)
+const AdminFeedbackPage = lazy(() =>
+  import('@/pages/admin/AdminFeedbackPage').then((m) => ({
+    default: m.AdminFeedbackPage,
+  })),
+)
+const AdminUsersPage = lazy(() =>
+  import('@/pages/admin/AdminUsersPage').then((m) => ({
+    default: m.AdminUsersPage,
+  })),
+)
+const AdminActivityPage = lazy(() =>
+  import('@/pages/admin/AdminActivityPage').then((m) => ({
+    default: m.AdminActivityPage,
+  })),
+)
 
 function RouteFallback() {
   return (
@@ -135,6 +171,20 @@ export default function App() {
                   <Route path="/game/:id" element={<GameDetailsPage />} />
                   <Route path="/group/:id" element={<GroupDetailsPage />} />
                   <Route path="/venue/:id" element={<VenueDetailsPage />} />
+                </Route>
+
+                <Route element={<AdminGate />}>
+                  <Route element={<AdminLayout />}>
+                    <Route path="/admin" element={<AdminOverviewPage />} />
+                    <Route
+                      path="/admin/venues/review"
+                      element={<AdminVenuesReviewPage />}
+                    />
+                    <Route path="/admin/reports" element={<AdminReportsPage />} />
+                    <Route path="/admin/feedback" element={<AdminFeedbackPage />} />
+                    <Route path="/admin/users" element={<AdminUsersPage />} />
+                    <Route path="/admin/activity" element={<AdminActivityPage />} />
+                  </Route>
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />

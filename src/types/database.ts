@@ -6,7 +6,12 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type VenueStatus = 'pending' | 'community_added' | 'verified'
+export type VenueStatus =
+  | 'pending'
+  | 'community_added'
+  | 'verified'
+  | 'rejected'
+  | 'archived'
 export type GroupVisibility = 'public' | 'private' | 'invite_only'
 export type RecurrenceType = 'daily' | 'weekly' | 'custom'
 export type GameVisibility = 'public' | 'private' | 'invite_only'
@@ -47,6 +52,11 @@ export type NotificationType =
   | 'group_game_created'
   | 'host_message'
   | 'attendance_issue'
+  | 'venue_submitted'
+  | 'venue_verified'
+  | 'venue_rejected'
+  | 'venue_edit_approved'
+  | 'venue_edit_rejected'
 
 export interface Database {
   public: {
@@ -1001,6 +1011,10 @@ export interface Database {
         Args: { p_game_id: string; p_target_user_id: string }
         Returns: string | null
       }
+      list_game_roster_contact_phones: {
+        Args: { p_game_id: string }
+        Returns: { user_id: string; phone: string }[]
+      }
       check_in_with_location: {
         Args: {
           p_game_id: string
@@ -1264,6 +1278,123 @@ export interface Database {
       game_start_at: {
         Args: { p_date: string; p_time: string; p_tz?: string }
         Returns: string
+      }
+      check_is_playr_admin: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      submit_venue_edit_request: {
+        Args: {
+          p_venue_id: string
+          p_proposed_changes: Json
+          p_reason?: string | null
+        }
+        Returns: Json
+      }
+      get_game_feedback_state: {
+        Args: { p_game_id: string }
+        Returns: Json
+      }
+      submit_game_experience_feedback: {
+        Args: {
+          p_game_id: string
+          p_overall_rating: number
+          p_comment?: string | null
+          p_tags?: Json
+        }
+        Returns: Json
+      }
+      get_venue_rating_summary: {
+        Args: { p_venue_id: string }
+        Returns: Json
+      }
+      admin_get_overview: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      admin_list_venue_review_queue: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      admin_verify_venue: {
+        Args: { p_venue_id: string; p_notes?: string | null }
+        Returns: Json
+      }
+      admin_reject_venue: {
+        Args: { p_venue_id: string; p_notes?: string | null }
+        Returns: Json
+      }
+      admin_archive_venue: {
+        Args: { p_venue_id: string; p_notes?: string | null }
+        Returns: Json
+      }
+      admin_list_venue_edit_requests: {
+        Args: {
+          p_status?: string | null
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: Json
+      }
+      admin_approve_venue_edit: {
+        Args: { p_request_id: string; p_notes?: string | null }
+        Returns: Json
+      }
+      admin_reject_venue_edit: {
+        Args: { p_request_id: string; p_notes?: string | null }
+        Returns: Json
+      }
+      admin_list_reports: {
+        Args: {
+          p_status?: string | null
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: Json
+      }
+      admin_update_report: {
+        Args: {
+          p_report_id: string
+          p_status: ReportStatus
+          p_notes?: string | null
+        }
+        Returns: Json
+      }
+      admin_suspend_user: {
+        Args: { p_user_id: string; p_notes?: string | null }
+        Returns: Json
+      }
+      admin_unsuspend_user: {
+        Args: { p_user_id: string; p_notes?: string | null }
+        Returns: Json
+      }
+      admin_list_moderation_actions: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      admin_list_game_feedback: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      admin_hide_game_feedback: {
+        Args: { p_feedback_id: string; p_notes?: string | null }
+        Returns: Json
+      }
+      admin_search_users: {
+        Args: { p_query: string; p_limit?: number }
+        Returns: Json
+      }
+      admin_request_venue_edit_info: {
+        Args: { p_request_id: string; p_notes?: string | null }
+        Returns: Json
+      }
+      admin_game_insights: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
+      admin_venue_insights: {
+        Args: Record<string, never>
+        Returns: Json
       }
     }
     Enums: {
