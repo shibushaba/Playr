@@ -4,6 +4,7 @@ import { registerSW } from 'virtual:pwa-register'
 import App from './App'
 import 'boxicons/css/boxicons.min.css'
 import './index.css'
+import './styles/glass-backdrop-fix.css'
 
 if (import.meta.env.PROD) {
   registerSW({ immediate: true })

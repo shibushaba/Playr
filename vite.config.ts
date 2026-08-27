@@ -5,6 +5,10 @@ import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  build: {
+    // Vite 8 + lightningcss minify drops unprefixed backdrop-filter (breaks glass blur on Chrome)
+    cssMinify: 'esbuild',
+  },
   plugins: [
     react(),
     tailwindcss(),

@@ -1,0 +1,59 @@
+/*
+  Restore standard backdrop-filter for glass surfaces.
+  Lightning CSS (Vite 8 / Tailwind 4) drops unprefixed backdrop-filter when
+  -webkit-backdrop-filter is on the same rule — Chrome then shows no blur.
+  Keep unprefixed rules here only; webkit prefixes stay in index.css.
+*/
+
+.glass {
+  backdrop-filter: blur(var(--blur)) saturate(140%);
+}
+
+.glass-elevated {
+  backdrop-filter: blur(var(--blur-elevated)) saturate(145%);
+}
+
+.glass-overlay {
+  backdrop-filter: blur(24px) saturate(180%);
+}
+
+.glass-nav {
+  backdrop-filter: blur(40px) saturate(180%);
+}
+
+.glass-frost {
+  backdrop-filter: blur(var(--blur-nav)) saturate(155%);
+}
+
+.glass-scrim-blur {
+  backdrop-filter: blur(16px) saturate(160%);
+}
+
+.glass-input {
+  backdrop-filter: blur(var(--blur-input)) saturate(135%);
+}
+
+.panel {
+  backdrop-filter: blur(var(--blur)) saturate(140%);
+}
+
+.map-frame {
+  backdrop-filter: blur(24px) saturate(135%);
+}
+
+.chrome-header {
+  backdrop-filter: blur(40px) saturate(180%);
+}
+
+.chrome-sidebar {
+  backdrop-filter: blur(24px) saturate(180%);
+}
+
+.glass-chrome-bar,
+.glass-surface {
+  backdrop-filter: blur(40px) saturate(180%);
+}
+
+.backdrop-blur-glass {
+  backdrop-filter: blur(var(--blur)) saturate(140%);
+}

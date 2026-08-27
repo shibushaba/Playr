@@ -742,8 +742,12 @@
   }
 
   .glass-chrome-bar {
-    /* Own compositor layer — sticky/fixed chrome keeps backdrop-filter */
-    transform: translateZ(0);
+    overflow: hidden;
+  }
+
+  .glass-chrome-bar > * {
+    position: relative;
+    z-index: 1;
   }
 
   .glass-scrim {
