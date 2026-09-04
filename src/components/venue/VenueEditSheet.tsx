@@ -17,7 +17,7 @@ interface Props {
 export function VenueEditSheet({ open, venue, onClose, onSubmitted }: Props) {
   const [name, setName] = useState(venue.name)
   const [address, setAddress] = useState(venue.address ?? '')
-  const [phone, setPhone] = useState('')
+  const [phone, setPhone] = useState(venue.phone ?? '')
   const [description, setDescription] = useState(venue.description ?? '')
   const [mapUrl, setMapUrl] = useState(venue.mapUrl ?? '')
   const [reason, setReason] = useState('')
@@ -29,7 +29,7 @@ export function VenueEditSheet({ open, venue, onClose, onSubmitted }: Props) {
     if (!open) return
     setName(venue.name)
     setAddress(venue.address ?? '')
-    setPhone('')
+    setPhone(venue.phone ?? '')
     setDescription(venue.description ?? '')
     setMapUrl(venue.mapUrl ?? '')
     setReason('')
@@ -49,7 +49,7 @@ export function VenueEditSheet({ open, venue, onClose, onSubmitted }: Props) {
     if (mapUrl.trim() && mapUrl.trim() !== (venue.mapUrl ?? '')) {
       changes.map_url = mapUrl.trim()
     }
-    if (phone.trim()) changes.phone = phone.trim()
+    if (phone.trim() && phone.trim() !== (venue.phone ?? '')) changes.phone = phone.trim()
 
     if (Object.keys(changes).length === 0) {
       setError('Change at least one field.')
@@ -120,7 +120,7 @@ export function VenueEditSheet({ open, venue, onClose, onSubmitted }: Props) {
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Leave blank to keep current"
+                  placeholder="Current number"
                   className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[14px] text-white outline-none placeholder:text-white/35"
                 />
               </label>

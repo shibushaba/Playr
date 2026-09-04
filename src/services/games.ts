@@ -56,6 +56,7 @@ function mapVenue(row: Tables<'venues'> | null): VenueRecord | null {
     latitude: row.latitude,
     longitude: row.longitude,
     mapUrl: row.map_url ?? null,
+    phone: row.phone ?? null,
     status: row.status,
     sports: parseStringArray(row.sports),
     facilities: parseStringArray(row.facilities),
@@ -173,12 +174,12 @@ async function countsForGames(
 export const gameSelect = `
   *,
   sports ( id, name, slug, icon ),
-  venues ( id, name, description, address, city, state, country, latitude, longitude, map_url, sports, facilities, opening_hours, website, image_url, status, created_by, claimed_by, created_at, updated_at ),
+  venues ( id, name, description, address, city, state, country, latitude, longitude, map_url, phone, sports, facilities, opening_hours, website, image_url, status, created_by, claimed_by, created_at, updated_at ),
   profiles!host_id ( id, display_name, username, avatar_url, bio )
 `
 
 export const groupSelect =
-  '*, sports ( id, name, slug, icon ), venues ( id, name, description, address, city, state, country, latitude, longitude, map_url, sports, facilities, opening_hours, website, image_url, status, created_by, claimed_by, created_at, updated_at )'
+  '*, sports ( id, name, slug, icon ), venues ( id, name, description, address, city, state, country, latitude, longitude, map_url, phone, sports, facilities, opening_hours, website, image_url, status, created_by, claimed_by, created_at, updated_at )'
 
 /** Map raw game join rows (with counts) into list items — shared with groups service. */
 export async function mapGamesToListItems(
@@ -408,6 +409,9 @@ export async function createGame(input: {
   if (input.maximumPlayers < input.minimumPlayers) {
     throw new AppError('Maximum players must be at least the minimum.')
   }
+  if (input.endTime <= input.startTime) {
+    throw new AppError('Pick a kickoff that leaves 90 minutes before midnight.')
+  }
 
   const payload: TablesInsert<'games'> = {
     host_id: user.id,
@@ -430,28 +434,29 @@ export async function createGame(input: {
   const { data, error } = await supabase
     .from('games')
     .insert(payload)
-    .select(gameSelect)
+    .select('id')
     .single()
 
-  if (error || !data) {
+  if (error || !data?.id) {
     logDevError('createGame', error)
     throw parsePlayrRpcError(error, "Couldn't create game. Try again.")
   }
 
-  const row = data as unknown as GameJoin
-
   const { error: hostError } = await supabase.rpc('ensure_host_player', {
-    p_game_id: row.id,
+    p_game_id: data.id,
   })
   if (hostError) {
     logDevError('createGame.ensureHost', hostError)
   }
 
-  const detail = await getGameDetail(row.id)
-  if (!detail) {
-    return mapListItem(row, 1, 0)
+  try {
+    const detail = await getGameDetail(data.id)
+    if (detail) return detail
+  } catch (e) {
+    logDevError('createGame.detail', e)
   }
-  return detail
+
+  return { id: data.id } as GameListItem
 }
 
 export async function reserveGameSpot(gameId: string): Promise<Tables<'game_players'>> {
@@ -498,6 +503,16 @@ export async function cancelParticipation(gameId: string): Promise<void> {
   if (error) {
     logDevError('cancelParticipation', error)
     throw parsePlayrRpcError(error, "Couldn't cancel your spot. Try again.")
+  }
+}
+
+export async function hostDeleteGame(gameId: string): Promise<void> {
+  const { error } = await supabase.rpc('host_delete_game', {
+    p_game_id: gameId,
+  })
+  if (error) {
+    logDevError('hostDeleteGame', error)
+    throw parsePlayrRpcError(error, "Couldn't delete this game.")
   }
 }
 

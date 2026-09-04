@@ -65,6 +65,7 @@ function mapVenue(row: Tables<'venues'> | null): VenueRecord | null {
     latitude: row.latitude,
     longitude: row.longitude,
     mapUrl: row.map_url ?? null,
+    phone: row.phone ?? null,
     status: row.status,
     sports: parseStringArray(row.sports),
     facilities: parseStringArray(row.facilities),

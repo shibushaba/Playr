@@ -65,6 +65,7 @@ type NearbyVenueRow = {
   latitude: number | null
   longitude: number | null
   map_url?: string | null
+  phone?: string | null
   status: VenueStatus
   sports: unknown
   facilities: unknown
@@ -102,6 +103,7 @@ function mapNearbyGame(row: NearbyGameRow): GameListItem {
           latitude: row.venue_latitude,
           longitude: row.venue_longitude,
           mapUrl: null,
+          phone: null,
           status: row.venue_status ?? 'pending',
           sports: [],
           facilities: [],
@@ -150,6 +152,7 @@ function mapNearbyVenue(row: NearbyVenueRow): VenueRecord {
     latitude: row.latitude,
     longitude: row.longitude,
     mapUrl: row.map_url ?? null,
+    phone: row.phone ?? null,
     status: row.status,
     sports: parseStringArray(row.sports),
     facilities: parseStringArray(row.facilities),

@@ -51,6 +51,7 @@ export interface VenueRecord {
   latitude: number | null
   longitude: number | null
   mapUrl: string | null
+  phone: string | null
   status: VenueStatus
   sports: string[]
   facilities: string[]

@@ -243,7 +243,7 @@ export function AddVenuePage() {
               />
             </div>
             <p className="mt-1.5 text-[12px] text-muted">
-              Business contact for hosts to confirm bookings. Not shown in public discovery.
+              Business number shown on the venue page so players can call to book.
             </p>
           </Field>
 

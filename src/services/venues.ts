@@ -5,9 +5,9 @@ import type { Tables } from '@/types/database'
 import type { VenueRecord } from '@/types/domain'
 import { parseStringArray } from '@/types/domain'
 
-/** Columns granted to clients — never use `*` (phone is restricted). */
+/** Public venue columns, including business phone for booking. */
 export const venuePublicSelect =
-  'id, name, description, address, city, state, country, latitude, longitude, map_url, sports, facilities, opening_hours, website, image_url, status, created_by, claimed_by, created_at, updated_at'
+  'id, name, description, address, city, state, country, latitude, longitude, map_url, phone, sports, facilities, opening_hours, website, image_url, status, created_by, claimed_by, created_at, updated_at'
 
 export interface SimilarVenue {
   id: string
@@ -34,6 +34,7 @@ function mapVenue(
     latitude: r.latitude,
     longitude: r.longitude,
     mapUrl: r.map_url ?? null,
+    phone: r.phone ?? null,
     status: r.status,
     sports: parseStringArray(r.sports),
     facilities: parseStringArray(r.facilities),

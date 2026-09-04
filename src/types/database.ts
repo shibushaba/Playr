@@ -979,6 +979,10 @@ export interface Database {
         Args: { p_game_id: string }
         Returns: Database['public']['Tables']['games']['Row']
       }
+      host_delete_game: {
+        Args: { p_game_id: string }
+        Returns: Database['public']['Tables']['games']['Row']
+      }
       confirm_game_venue_booking: {
         Args: { p_game_id: string }
         Returns: Database['public']['Tables']['games']['Row']

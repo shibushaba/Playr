@@ -50,7 +50,11 @@ export function MyGamesPage() {
     if (!user) return []
     if (tab === 'hosting') {
       return games.filter(
-        (g) => g.hostId === user.id && new Date(g.startsAt).getTime() >= now,
+        (g) =>
+          g.hostId === user.id &&
+          new Date(g.startsAt).getTime() >= now &&
+          g.dbStatus !== 'cancelled' &&
+          g.dbStatus !== 'completed',
       )
     }
     if (tab === 'past') {

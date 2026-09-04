@@ -1,3 +1,4 @@
+import { CallButton } from '@/components/game/CallButton'
 import { LoadingBlock } from '@/components/motion/LoadingBlock'
 import { GameCard } from '@/components/game/GameCard'
 import { Header } from '@/components/layout/Header'
@@ -7,6 +8,7 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { useLocationDiscovery } from '@/contexts/LocationContext'
 import { toUserMessage } from '@/lib/errors'
 import { formatDistanceMeters, haversineMeters } from '@/lib/location'
+import { formatPhoneDisplay } from '@/lib/phone'
 import { isSafeHttpUrl, osmEmbedUrl } from '@/lib/maps'
 import { getNearbyGames } from '@/services/discovery'
 import { getVenue } from '@/services/venues'
@@ -142,6 +144,14 @@ export function VenueDetailsPage() {
             {venue.city ? `, ${venue.city}` : null}
             {venue.state ? `, ${venue.state}` : null}
           </p>
+          {venue.phone ? (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <p className="text-[15px] font-medium text-white">
+                {formatPhoneDisplay(venue.phone)}
+              </p>
+              <CallButton phone={venue.phone} label="Call venue" compact />
+            </div>
+          ) : null}
         </header>
 
         {venue.description ? (

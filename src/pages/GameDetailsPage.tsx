@@ -43,7 +43,7 @@ import {
   type CheckInWindow,
   type GameCheckIn,
 } from '@/services/checkin'
-import { getGameDetail, loadRosterContactPhones } from '@/services/games'
+import { getGameDetail, hostDeleteGame, loadRosterContactPhones } from '@/services/games'
 import { createGameInvite } from '@/services/invites'
 import {
   confirmGameVenueBooking,
@@ -58,6 +58,7 @@ import {
   MapPin,
   MessageCircle,
   Shield,
+  Trash2,
   Users,
 } from 'lucide-react'
 import { useGameChatUnread } from '@/hooks/useGameChatUnread'
@@ -90,7 +91,10 @@ export function GameDetailsPage() {
     messageId?: string
   } | null>(null)
   const [confirmNoShow, setConfirmNoShow] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteBusy, setDeleteBusy] = useState(false)
   const [inviteCopied, setInviteCopied] = useState(false)
+  const [clock, setClock] = useState(() => Date.now())
 
   useEffect(() => {
     const state = location.state as { publishError?: string } | null
@@ -177,6 +181,20 @@ export function GameDetailsPage() {
         game.myParticipation?.role === 'host' ||
         game.myParticipation?.role === 'co_host'),
   )
+  const isPrimaryHost = Boolean(user && game && game.hostId === user.id)
+
+  useEffect(() => {
+    if (!game || !isPrimaryHost) return
+    if (!['draft', 'open'].includes(game.dbStatus)) return
+    const deadline = new Date(game.confirmationDeadline).getTime()
+    if (deadline <= Date.now()) return
+    const id = window.setInterval(() => {
+      const t = Date.now()
+      setClock(t)
+      if (t >= deadline) window.clearInterval(id)
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [game, isPrimaryHost])
 
   const participantIdsKey = useMemo(
     () => (game?.players ?? []).map((p) => p.userId).sort().join(','),
@@ -259,12 +277,17 @@ export function GameDetailsPage() {
     myRosterEntry?.status === 'attended' ||
     Boolean(isHost)
   const isFull = game.confirmedCount >= game.maxPlayers
-  const deadlinePassed = new Date(game.confirmationDeadline).getTime() <= Date.now()
+  const deadlinePassed = new Date(game.confirmationDeadline).getTime() <= clock
   const isCancelled = game.dbStatus === 'cancelled'
   const isGameConfirmed = game.dbStatus === 'confirmed'
   const isLive = game.dbStatus === 'live'
   const isCompleted = game.dbStatus === 'completed'
   const isDraft = game.dbStatus === 'draft'
+  const canDeleteGame =
+    isPrimaryHost &&
+    (isDraft || game.dbStatus === 'open') &&
+    !deadlinePassed
+  const contactPhone = venuePhone ?? game.venue?.phone ?? null
   const isParticipant =
     isHost || isConfirmedPlayer || isReserved || isWaitlisted
   const hasVenueLocation = Boolean(
@@ -428,6 +451,22 @@ export function GameDetailsPage() {
     }
   }
 
+  async function deleteHostedGame() {
+    if (!game) return
+    setDeleteBusy(true)
+    setActionError(null)
+    try {
+      await hostDeleteGame(game.id)
+      setConfirmDelete(false)
+      navigate('/my-games')
+    } catch (e) {
+      setActionError(toUserMessage(e, "Couldn't delete this game."))
+      setConfirmDelete(false)
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
+
   return (
     <div className="lg:pb-24">
       <Header
@@ -483,8 +522,7 @@ export function GameDetailsPage() {
               × Cancelled
             </p>
             <p className="mt-2 text-[14px] leading-relaxed text-white/45">
-              This game was cancelled because the minimum number of players
-              wasn&apos;t reached.
+              This game was cancelled.
             </p>
           </div>
         ) : null}
@@ -500,13 +538,13 @@ export function GameDetailsPage() {
                 it for players.
               </p>
             </div>
-            {venuePhone ? (
+            {contactPhone ? (
               <div className="glass p-3">
                 <p className="label-caps">Venue contact</p>
                 <p className="mt-1 text-[14px] text-white">
-                  {formatPhoneDisplay(venuePhone)}
+                  {formatPhoneDisplay(contactPhone)}
                 </p>
-                <CallButton phone={venuePhone} label="Call venue" className="mt-3" />
+                <CallButton phone={contactPhone} label="Call venue" className="mt-3" />
               </div>
             ) : null}
             {!game.venueBookingConfirmedAt ? (
@@ -1022,10 +1060,48 @@ export function GameDetailsPage() {
             reservationLabel={reservationLabel}
             onSelfCheckIn={() => void doSelfCheckIn()}
             onPublishDraft={() => void publishDraftGame()}
+            onDeleteGame={() => setConfirmDelete(true)}
+            canDeleteGame={canDeleteGame}
+            deleteBusy={deleteBusy}
             onNavigate={navigate}
           />
         </GameActionDock>
       </div>
+
+      {confirmDelete ? (
+        <OverlaySheet
+          onClose={() => {
+            if (!deleteBusy) setConfirmDelete(false)
+          }}
+          closeLabel="Close"
+          panelClassName="max-w-md p-5"
+        >
+          <p className="text-[18px] font-semibold tracking-tight text-white">
+            Delete this game?
+          </p>
+          <p className="mt-2 text-[14px] text-white/45">
+            {isDraft
+              ? 'This draft will be removed. You can host again later.'
+              : 'Players will be notified. You can only delete until 3 hours before kickoff.'}
+          </p>
+          <div className="mt-4 flex gap-2">
+            <SecondaryButton
+              fullWidth
+              disabled={deleteBusy}
+              onClick={() => setConfirmDelete(false)}
+            >
+              Keep game
+            </SecondaryButton>
+            <PrimaryButton
+              fullWidth
+              disabled={deleteBusy}
+              onClick={() => void deleteHostedGame()}
+            >
+              {deleteBusy ? 'Deleting…' : 'Delete game'}
+            </PrimaryButton>
+          </div>
+        </OverlaySheet>
+      ) : null}
 
       {confirmNoShow ? (
         <OverlaySheet
@@ -1093,6 +1169,7 @@ function gameActionPhaseKey({
   isFull,
   isLive,
   isCompleted,
+  canDeleteGame,
 }: {
   user: ReturnType<typeof useAuth>['user']
   isCancelled: boolean
@@ -1109,10 +1186,11 @@ function gameActionPhaseKey({
   isFull: boolean
   isLive: boolean
   isCompleted: boolean
+  canDeleteGame: boolean
 }): string {
   if (!user) return 'guest'
   if (isCancelled) return 'cancelled'
-  if (isDraft && isHost) return 'draft-host'
+  if (isDraft && isHost) return canDeleteGame ? 'draft-host-delete' : 'draft-host'
   if (isDraft) return 'draft'
   if (iCheckedIn) return 'checked-in'
   if (canSelfCheckIn && windowInfo?.playerWindowOpen) return 'check-in'
@@ -1120,7 +1198,7 @@ function gameActionPhaseKey({
     if (isCompleted) return 'host-completed'
     if (isLive) return 'host-live'
     if (isGameConfirmed) return 'host-confirmed'
-    return 'host'
+    return canDeleteGame ? 'host-delete' : 'host'
   }
   if (isConfirmedPlayer || isReserved || isWaitlisted) {
     if (isWaitlisted) return 'waitlisted'
@@ -1153,6 +1231,9 @@ function GameActionButton({
   reservationLabel,
   onSelfCheckIn,
   onPublishDraft,
+  onDeleteGame,
+  canDeleteGame,
+  deleteBusy,
   onNavigate,
 }: {
   user: ReturnType<typeof useAuth>['user']
@@ -1175,6 +1256,9 @@ function GameActionButton({
   reservationLabel: string | null
   onSelfCheckIn: () => void
   onPublishDraft: () => void
+  onDeleteGame: () => void
+  canDeleteGame: boolean
+  deleteBusy: boolean
   onNavigate: ReturnType<typeof useNavigate>
 }) {
   const phaseKey = gameActionPhaseKey({
@@ -1193,6 +1277,7 @@ function GameActionButton({
     isFull,
     isLive,
     isCompleted,
+    canDeleteGame,
   })
 
   let button: ReactNode
@@ -1216,9 +1301,19 @@ function GameActionButton({
     )
   } else if (isDraft && isHost) {
     button = (
-      <PrimaryButton fullWidth disabled={busy} onClick={onPublishDraft}>
-        Publish game
-      </PrimaryButton>
+      <div className="flex w-full flex-col gap-2">
+        <PrimaryButton fullWidth disabled={busy} onClick={onPublishDraft}>
+          Publish game
+        </PrimaryButton>
+        {canDeleteGame ? (
+          <SecondaryButton fullWidth disabled={deleteBusy} onClick={onDeleteGame}>
+            <span className="inline-flex items-center gap-1.5">
+              <Trash2 className="h-4 w-4" />
+              Delete game
+            </span>
+          </SecondaryButton>
+        ) : null}
+      </div>
     )
   } else if (isDraft) {
     button = (
@@ -1240,15 +1335,25 @@ function GameActionButton({
     )
   } else if (isHost) {
     button = (
-      <PrimaryButton fullWidth disabled variant="outline">
-        {isCompleted
-          ? 'Completed'
-          : isLive
-            ? 'Live'
-            : isGameConfirmed
-              ? 'Hosting'
-              : "You're hosting"}
-      </PrimaryButton>
+      <div className="flex w-full flex-col gap-2">
+        <PrimaryButton fullWidth disabled variant="outline">
+          {isCompleted
+            ? 'Completed'
+            : isLive
+              ? 'Live'
+              : isGameConfirmed
+                ? 'Hosting'
+                : "You're hosting"}
+        </PrimaryButton>
+        {canDeleteGame ? (
+          <SecondaryButton fullWidth disabled={deleteBusy} onClick={onDeleteGame}>
+            <span className="inline-flex items-center gap-1.5">
+              <Trash2 className="h-4 w-4" />
+              Delete game
+            </span>
+          </SecondaryButton>
+        ) : null}
+      </div>
     )
   } else if (isConfirmedPlayer || isReserved || isWaitlisted) {
     button = (

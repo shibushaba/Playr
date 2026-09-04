@@ -1,3 +1,4 @@
+import { CallButton } from '@/components/game/CallButton'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { useLocationDiscovery } from '@/contexts/LocationContext'
@@ -7,6 +8,7 @@ import {
   formatDistanceMeters,
   haversineMeters,
 } from '@/lib/location'
+import { formatPhoneDisplay } from '@/lib/phone'
 import {
   isSafeHttpUrl,
   osmEmbedUrl,
@@ -102,6 +104,14 @@ export function VenueReachPanel({
         <p className="mt-1 text-[13px] leading-relaxed text-white/45">
           {[venue.address, venue.city, venue.state].filter(Boolean).join(', ')}
         </p>
+      ) : null}
+      {venue.phone ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <p className="text-[14px] font-medium text-white">
+            {formatPhoneDisplay(venue.phone)}
+          </p>
+          <CallButton phone={venue.phone} label="Call venue" compact />
+        </div>
       ) : null}
 
       {hasCoords ? (

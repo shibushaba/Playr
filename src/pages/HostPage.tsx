@@ -42,6 +42,7 @@ function tomorrowDate(): string {
 function addMinutes(time: string, minutes: number): string {
   const [h, m] = time.split(':').map(Number)
   const total = h * 60 + m + minutes
+  if (!Number.isFinite(total) || total >= 24 * 60) return '23:59'
   const hh = String(Math.floor(total / 60) % 24).padStart(2, '0')
   const mm = String(total % 60).padStart(2, '0')
   return `${hh}:${mm}`
@@ -130,8 +131,20 @@ export function HostPage() {
   }, [location, radiusMeters, preselectedVenue])
 
   useEffect(() => {
-    if (!venueId || !user) {
+    if (!venueId) {
       setVenuePhone(null)
+      setVenuePhoneLoading(false)
+      return
+    }
+    const listed = venues.find((v) => v.id === venueId)?.phone ?? null
+    if (listed) {
+      setVenuePhone(listed)
+      setVenuePhoneLoading(false)
+      return
+    }
+    if (!user) {
+      setVenuePhone(null)
+      setVenuePhoneLoading(false)
       return
     }
     let cancelled = false
@@ -149,7 +162,7 @@ export function HostPage() {
     return () => {
       cancelled = true
     }
-  }, [venueId, user])
+  }, [venueId, user, venues])
 
   const [hostConfirm, setHostConfirm] = useState(false)
 

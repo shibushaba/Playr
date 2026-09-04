@@ -13,6 +13,7 @@ const CODE_MESSAGES: Record<string, string> = {
   GAME_CLOSED: 'That game is no longer accepting players.',
   GAME_CANCELLED:
     "This game was cancelled because enough players didn't join.",
+  GAME_DELETE_CLOSED: "Games can't be deleted within 3 hours of kickoff.",
   GAME_CONFIRMED: 'This game is locked and no longer accepting players.',
   GAME_NOT_FOUND: 'Game not found.',
   ALREADY_JOINED: 'You already have a spot in this game.',
@@ -75,39 +76,57 @@ const CODE_MESSAGES: Record<string, string> = {
 
 const KNOWN_CODES = Object.keys(CODE_MESSAGES)
 
-export function parsePlayrRpcError(error: unknown, fallback: string): AppError {
-  const raw =
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-      ? (error as { message: string }).message
-      : ''
+function postgrestParts(error: unknown): {
+  message: string
+  code: string
+  details: string
+} {
+  if (typeof error !== 'object' || error === null) {
+    return { message: '', code: '', details: '' }
+  }
+  const e = error as { message?: unknown; code?: unknown; details?: unknown }
+  return {
+    message: typeof e.message === 'string' ? e.message : '',
+    code: typeof e.code === 'string' ? e.code : '',
+    details: typeof e.details === 'string' ? e.details : '',
+  }
+}
 
-  if (raw.includes('23505') || raw.toLowerCase().includes('duplicate')) {
+export function parsePlayrRpcError(error: unknown, fallback: string): AppError {
+  const { message: raw, code: pgCode, details } = postgrestParts(error)
+  const haystack = `${pgCode} ${raw} ${details}`
+
+  if (pgCode === '23514' || haystack.includes('games_end_after_start')) {
+    return new AppError(
+      'Pick a kickoff that leaves 90 minutes before midnight.',
+      'INVALID_TIME',
+    )
+  }
+
+  if (haystack.includes('23505') || haystack.toLowerCase().includes('duplicate')) {
     return new AppError('That spot was just taken by someone else.', 'GAME_FULL')
   }
 
-  const tooFar = raw.match(/TOO_FAR:(\d+)/)
+  const tooFar = haystack.match(/TOO_FAR:(\d+)/)
   if (tooFar) {
     return new AppError(CODE_MESSAGES.TOO_FAR, 'TOO_FAR')
   }
 
   const code = KNOWN_CODES.find(
-    (c) => raw === c || raw.startsWith(`${c}`) || raw.includes(c),
+    (c) => raw === c || raw.startsWith(`${c}`) || haystack.includes(c),
   )
 
   if (code) {
     return new AppError(CODE_MESSAGES[code] ?? fallback, code)
   }
 
-  if (raw.toLowerCase().includes('sign in')) {
+  if (haystack.toLowerCase().includes('sign in')) {
     return new AppError(CODE_MESSAGES.UNAUTHENTICATED, 'UNAUTHENTICATED')
   }
-  if (raw.toLowerCase().includes('expired')) {
+  if (haystack.toLowerCase().includes('expired')) {
     return new AppError(CODE_MESSAGES.RESERVATION_EXPIRED, 'RESERVATION_EXPIRED')
   }
-  if (raw.toLowerCase().includes('full')) {
+  if (haystack.toLowerCase().includes('full')) {
     return new AppError(CODE_MESSAGES.GAME_FULL, 'GAME_FULL')
   }
 

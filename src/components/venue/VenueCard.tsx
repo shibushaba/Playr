@@ -1,4 +1,5 @@
 import { cn } from '@/lib/format'
+import { formatPhoneDisplay } from '@/lib/phone'
 import type { VenueRecord } from '@/types/domain'
 import { Link } from 'react-router-dom'
 
@@ -25,6 +26,11 @@ export function VenueCard({ venue, to, selected, onClick, className }: Props) {
           <p className="mt-1 text-[13px] text-white/45">
             {[venue.city, distance].filter(Boolean).join(' · ') || 'Venue'}
           </p>
+          {venue.phone ? (
+            <p className="mt-1 text-[13px] text-white/55">
+              {formatPhoneDisplay(venue.phone)}
+            </p>
+          ) : null}
         </div>
         {selected ? (
           <span className="label-caps shrink-0 text-white">Selected ✓</span>
