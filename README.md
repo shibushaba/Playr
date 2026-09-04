@@ -34,7 +34,7 @@ npx supabase db push
 # or run files under supabase/migrations/ in order
 ```
 
-4. In Supabase Auth settings, enable Email provider. For local MVP you may disable email confirmations.
+4. In Supabase Auth settings, enable the Email provider. For production, keep email confirmation **on**.
 
 5. Install and run:
 
@@ -58,13 +58,7 @@ Quick summary:
 npm run build   # verify locally before pushing
 ```
 
-### Demo accounts (after seed migration)
-
-| Email | Password |
-| --- | --- |
-| host.demo@playr.test | PlayrDemo123! |
-| player.demo@playr.test | PlayrDemo123! |
-| cricket.demo@playr.test | PlayrDemo123! |
+Admin access is email-allowlisted (`admin@gmail.com`, `shibushabas23@gmail.com`). Sign up with one of those addresses after a clean database — you become admin automatically.
 
 ## Structure
 
@@ -73,8 +67,8 @@ npm run build   # verify locally before pushing
 - `src/services` — Supabase data access
 - `src/lib/supabase.ts` — browser client (publishable key only)
 - `src/types/database.ts` — generated-style DB types
-- `src/data/mock.ts` — legacy mock data (kept; UI now prefers Supabase)
-- `supabase/migrations` — schema, RLS, functions, seed
+- `src/data/mock.ts` — unused legacy mock data
+- `supabase/migrations` — schema, RLS, functions
 
 ## Security notes
 

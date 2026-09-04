@@ -58,7 +58,7 @@ export function NotificationBell() {
   return (
     <Link
       to="/notifications"
-      className="glass motion-btn relative flex h-10 w-10 items-center justify-center text-white hover:border-white/20"
+      className="glass motion-btn relative flex h-11 w-11 items-center justify-center text-white hover:border-white/20"
       aria-label={count > 0 ? `Notifications, ${count} unread` : 'Notifications'}
     >
       <Bell className="h-4 w-4" strokeWidth={1.75} />

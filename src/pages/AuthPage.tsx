@@ -75,12 +75,12 @@ export function AuthPage() {
   }
 
   return (
-    <div className="min-h-dvh">
+    <div className="flex min-h-dvh flex-col">
       <Header title={mode === 'signin' ? 'Sign in' : 'Join PLAYR'} backTo="/" />
-      <PageContent className="page-pad py-8">
+      <PageContent className="page-pad flex-1 py-6">
         <p className="text-[14px] leading-relaxed text-white/45">
-          Sign in with email to join games, host, and keep your reliability
-          history. PLAYR never handles payments.
+          Email to join games, host, and keep your reliability history. PLAYR
+          never handles payments.
         </p>
 
         {!isSupabaseConfigured ? (
@@ -98,7 +98,7 @@ export function AuthPage() {
           </div>
         ) : null}
 
-        <MotionTabBar className="mt-8">
+        <MotionTabBar className="mt-6">
           <MotionTab active={mode === 'signin'} onClick={() => setMode('signin')}>
             Sign in
           </MotionTab>
@@ -107,7 +107,7 @@ export function AuthPage() {
           </MotionTab>
         </MotionTabBar>
 
-        <form className="mt-8 space-y-5" onSubmit={onSubmit}>
+        <form id="auth-form" className="mt-6 space-y-5" onSubmit={onSubmit}>
           {mode === 'signup' ? (
             <>
               <Field label="Full name">
@@ -183,28 +183,36 @@ export function AuthPage() {
               {error}
             </p>
           ) : null}
-
-          <PrimaryButton type="submit" fullWidth disabled={busy || !isSupabaseConfigured}>
-            {busy ? 'Please wait…' : 'Continue'}
-          </PrimaryButton>
-          <PrimaryButton
-            type="button"
-            fullWidth
-            variant="outline"
-            onClick={() => navigate('/home')}
-          >
-            Browse as guest
-          </PrimaryButton>
         </form>
+      </PageContent>
 
-        <p className="mt-10 text-center text-[12px] leading-relaxed text-white/45">
+      <footer className="sticky bottom-0 z-10 border-t border-white/10 bg-bg/90 px-5 py-4 backdrop-blur-md pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <PrimaryButton
+          type="submit"
+          form="auth-form"
+          fullWidth
+          disabled={busy || !isSupabaseConfigured}
+        >
+          {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+        </PrimaryButton>
+        <button
+          type="button"
+          className="mt-3 flex min-h-11 w-full items-center justify-center text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
+          onClick={() => navigate('/home')}
+        >
+          Browse as guest
+        </button>
+        <p className="mt-4 text-center text-[11px] leading-relaxed text-white/40">
           By continuing you agree that your phone may be shared with hosts and
-          players in games you join, and that PLAYR does not process payments.{' '}
-          <Link to="/home" className="font-semibold text-white underline-offset-2 hover:underline">
+          players in games you join.{' '}
+          <Link
+            to="/home"
+            className="font-semibold text-white/70 underline-offset-2 hover:underline"
+          >
             Browse games
           </Link>
         </p>
-      </PageContent>
+      </footer>
 
       <style>{`
         .field {

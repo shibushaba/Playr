@@ -31,7 +31,6 @@ export function PhoneVerificationSheet({
   const [code, setCode] = useState('')
   const [challengeId, setChallengeId] = useState<string | null>(null)
   const [normalized, setNormalized] = useState<string | null>(null)
-  const [devCode, setDevCode] = useState<string | null>(null)
   const [step, setStep] = useState<'enter' | 'code' | 'done'>('enter')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -42,7 +41,6 @@ export function PhoneVerificationSheet({
       setCode('')
       setChallengeId(null)
       setNormalized(null)
-      setDevCode(null)
       setError(null)
     }
   }, [open])
@@ -61,7 +59,6 @@ export function PhoneVerificationSheet({
       const result = await requestPhoneVerification(e164)
       setChallengeId(result.challengeId)
       setNormalized(result.phone)
-      setDevCode(result.devCode ?? null)
       setStep('code')
     } catch (e) {
       setError(toUserMessage(e, "Couldn't send verification code."))
@@ -141,11 +138,6 @@ export function PhoneVerificationSheet({
                   {normalized ? formatPhoneDisplay(normalized) : 'your phone'}
                 </span>
               </p>
-              {devCode ? (
-                <p className="glass-status-warning rounded-[8px] px-3 py-2 text-[12px] text-status-warning">
-                  Pilot code: {devCode}
-                </p>
-              ) : null}
               <label className="block">
                 <span className="label-caps mb-2 block">Verification code</span>
                 <input

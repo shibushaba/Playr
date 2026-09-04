@@ -67,6 +67,7 @@ Direct links like `/games/:id` and `/join/game/:token` work via SPA rewrites in 
 - [ ] Home shows nearby games (location permission)
 - [ ] Game details, join, host, chat work
 - [ ] Invite link copies as `https://YOUR_APP.vercel.app/join/game/...`
+- [ ] Sign up with an allowlisted admin email, then `/admin` loads
 - [ ] Supabase Dashboard → Database → Extensions → **pg_cron** → job `playr-engine-tick` active
 
 Quick SQL (Supabase SQL Editor):

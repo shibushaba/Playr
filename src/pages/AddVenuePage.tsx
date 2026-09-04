@@ -77,8 +77,12 @@ export function AddVenuePage() {
   }
 
   async function submit(forceCreate = false) {
+    if (!canJoinGame(profile, user)) {
+      setError('Add your name and phone in Profile first, then come back.')
+      return
+    }
     if (!place) {
-      setError('Select the venue location on the map.')
+      setError('Select the venue location on the map, or paste a map link.')
       return
     }
     if (!name.trim()) {
@@ -172,7 +176,7 @@ export function AddVenuePage() {
   return (
     <div>
       <Header title="Add venue" backTo={backTo} subtitle="Exact map location required" />
-      <div className="page-pad py-6">
+      <div className="page-pad py-6 pb-10">
         <form
           className="space-y-6"
           onSubmit={(e) => {
@@ -303,15 +307,7 @@ export function AddVenuePage() {
           <PrimaryButton
             type="submit"
             fullWidth
-            disabled={
-              busy ||
-              !canJoinGame(profile, user) ||
-              !name.trim() ||
-              !area.trim() ||
-              !place ||
-              !phone.trim() ||
-              selectedSports.length === 0
-            }
+            disabled={busy}
           >
             {busy ? 'Creating…' : 'Create venue'}
           </PrimaryButton>

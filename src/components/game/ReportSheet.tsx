@@ -110,7 +110,7 @@ export function ReportSheet({
           <button
             type="button"
             onClick={onClose}
-            className="glass flex h-10 w-10 items-center justify-center text-white/70 transition hover:text-white"
+            className="glass flex h-11 w-11 items-center justify-center text-white/70 transition hover:text-white"
             aria-label="Close"
           >
             <X className="h-5 w-5" />

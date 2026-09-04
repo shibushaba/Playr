@@ -32,7 +32,7 @@ export function Header({
         backTo ? (
           <Link
             to={backTo}
-            className="motion-btn motion-icon-back flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-white/12 bg-white/[0.04] backdrop-blur-glass text-white hover:border-white/25 hover:bg-white/[0.08]"
+            className="motion-btn motion-icon-back flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] border border-white/12 bg-white/[0.04] backdrop-blur-glass text-white hover:border-white/25 hover:bg-white/[0.08]"
             aria-label="Go back"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -41,7 +41,7 @@ export function Header({
           <button
             type="button"
             onClick={onBack}
-            className="motion-btn motion-icon-back flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-white/12 bg-white/[0.04] backdrop-blur-glass text-white hover:border-white/25 hover:bg-white/[0.08]"
+            className="motion-btn motion-icon-back flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] border border-white/12 bg-white/[0.04] backdrop-blur-glass text-white hover:border-white/25 hover:bg-white/[0.08]"
             aria-label="Go back"
           >
             <ChevronLeft className="h-5 w-5" />

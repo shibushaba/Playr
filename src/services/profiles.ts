@@ -14,6 +14,65 @@ const AVATAR_INPUT_MAX_BYTES = 8 * 1024 * 1024
 const PROFILE_FALLBACK_SELECT =
   'id, display_name, username, avatar_url, bio, is_active, created_at, updated_at'
 
+async function syncAuthProfileMeta(input: {
+  displayName?: string
+  phone?: string | null
+}): Promise<void> {
+  const data: Record<string, string | null> = {}
+  if (input.displayName !== undefined) data.display_name = input.displayName
+  if (input.phone !== undefined) data.phone = input.phone
+  if (Object.keys(data).length === 0) return
+  const { error } = await supabase.auth.updateUser({ data })
+  if (error) logDevError('syncAuthProfileMeta', error)
+}
+
+function withSavedPhone(
+  saved: Tables<'profiles'>,
+  phone: string | null | undefined,
+): Tables<'profiles'> {
+  if (phone && !saved.phone) return { ...saved, phone }
+  return saved
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.length ? value : null
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+/** Map RPC jsonb / table rows into a profile, including phone. */
+export function coerceProfile(data: unknown): Tables<'profiles'> | null {
+  if (data == null) return null
+  let row: unknown = data
+  if (typeof row === 'string') {
+    try {
+      row = JSON.parse(row) as unknown
+    } catch {
+      return null
+    }
+  }
+  if (typeof row !== 'object') return null
+  const r = row as Record<string, unknown>
+  if (typeof r.id !== 'string') return null
+  return {
+    id: r.id,
+    display_name: asString(r.display_name),
+    username: asString(r.username),
+    phone: asString(r.phone),
+    phone_verified_at: asString(r.phone_verified_at),
+    email_verified_at: asString(r.email_verified_at),
+    avatar_url: asString(r.avatar_url),
+    bio: asString(r.bio),
+    home_latitude: asNumber(r.home_latitude),
+    home_longitude: asNumber(r.home_longitude),
+    is_active: r.is_active !== false,
+    created_at: asString(r.created_at) ?? new Date().toISOString(),
+    updated_at: asString(r.updated_at) ?? new Date().toISOString(),
+  }
+}
+
 function buildProfileRow(
   base: Partial<Tables<'profiles'>> & { id: string },
   user: User,
@@ -58,7 +117,8 @@ export async function getMyProfile(): Promise<Tables<'profiles'> | null> {
   if (!user) return null
 
   const { data, error } = await supabase.rpc('get_my_profile')
-  if (!error && data) return data
+  const fromRpc = coerceProfile(data)
+  if (!error && fromRpc) return fromRpc
   if (error) logDevError('getMyProfile', error)
 
   const fallback = await fetchMyProfileFallback(user)
@@ -100,7 +160,8 @@ export async function ensureMyProfile(): Promise<Tables<'profiles'>> {
   if (existing) return existing
 
   const { data: rpcProfile, error: rpcError } = await supabase.rpc('ensure_my_profile')
-  if (!rpcError && rpcProfile) return rpcProfile
+  const ensured = coerceProfile(rpcProfile)
+  if (!rpcError && ensured) return ensured
   if (rpcError) logDevError('ensureMyProfile rpc', rpcError)
 
   const meta = user.user_metadata ?? {}
@@ -186,8 +247,15 @@ export async function updateMyProfile(input: {
   }
 
   const { data, error } = await supabase.rpc('update_my_profile', args)
-
-  if (!error && data) return data
+  const saved = coerceProfile(data)
+  if (!error && saved) {
+    const next = withSavedPhone(saved, phone)
+    await syncAuthProfileMeta({
+      displayName: input.displayName,
+      phone,
+    })
+    return next
+  }
 
   if (error) {
     const parsed = parsePlayrRpcError(error, "Couldn't update profile. Try again.")
@@ -293,21 +361,21 @@ async function updateMyProfileDirect(
   }
 
   const reloaded = await getMyProfile()
-  if (reloaded) {
-    if (patch.phone && !reloaded.phone) {
-      return { ...reloaded, phone: patch.phone }
-    }
-    return reloaded
-  }
-
-  return buildProfileRow(
-    {
-      ...before,
-      ...patch,
-      updated_at: new Date().toISOString(),
-    },
-    user,
-  )
+  const next = reloaded
+    ? withSavedPhone(reloaded, patch.phone)
+    : buildProfileRow(
+        {
+          ...before,
+          ...patch,
+          updated_at: new Date().toISOString(),
+        },
+        user,
+      )
+  await syncAuthProfileMeta({
+    displayName: input.displayName,
+    phone: patch.phone,
+  })
+  return next
 }
 
 export async function uploadMyAvatar(file: File): Promise<Tables<'profiles'>> {

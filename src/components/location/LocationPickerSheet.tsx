@@ -37,14 +37,25 @@ export function LocationPickerSheet() {
       panelContentClassName="flex max-h-[80dvh] flex-col"
     >
         <div className="border-b border-white/10 px-5 py-5">
-          <h2 className="text-[18px] font-semibold tracking-tight text-white">
-            Choose your area
-          </h2>
-          <p className="mt-1 text-[13px] text-white/45">
-            {permission === 'denied' || permission === 'unavailable'
-              ? 'Location access is off. Pick a city where PLAYR has games or venues.'
-              : 'Only cities with PLAYR games or venues are listed.'}
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-[18px] font-semibold tracking-tight text-white">
+                Choose your area
+              </h2>
+              <p className="mt-1 text-[13px] text-white/45">
+                {permission === 'denied' || permission === 'unavailable'
+                  ? 'Location access is off. Pick a city where PLAYR has games or venues.'
+                  : 'Only cities with PLAYR games or venues are listed.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPickerOpen(false)}
+              className="shrink-0 pt-0.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
+            >
+              Close
+            </button>
+          </div>
           {areas.length > 0 ? (
             <label className="glass-input mt-4 flex min-h-11 items-center gap-2 !px-3">
               <Search className="h-4 w-4 text-white/45" />

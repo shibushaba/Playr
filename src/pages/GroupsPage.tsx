@@ -29,7 +29,7 @@ export function GroupsPage() {
         right={
           <Link
             to="/groups/new"
-            className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
+            className="flex min-h-11 items-center text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
           >
             New
           </Link>
@@ -61,11 +61,13 @@ export function GroupsPage() {
             ))}
           </div>
         )}
-        <div className="pt-2">
-          <Link to="/groups/new">
-            <PrimaryButton fullWidth>Create a recurring group</PrimaryButton>
-          </Link>
-        </div>
+        {groups.length > 0 ? (
+          <div className="pt-2">
+            <Link to="/groups/new">
+              <PrimaryButton fullWidth>Create a recurring group</PrimaryButton>
+            </Link>
+          </div>
+        ) : null}
       </div>
     </div>
   )

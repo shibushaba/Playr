@@ -11,7 +11,7 @@ export function MotionIconButton({ children, className, ...rest }: Props) {
     <button
       type="button"
       className={cn(
-        'motion-icon-btn glass flex h-10 w-10 items-center justify-center text-white/70',
+        'motion-icon-btn glass flex h-11 w-11 items-center justify-center text-white/70',
         className,
       )}
       {...rest}

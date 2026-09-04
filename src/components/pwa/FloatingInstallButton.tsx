@@ -13,7 +13,7 @@ export function FloatingInstallButton() {
       className={cn(
         'motion-btn fixed z-[90] flex items-center gap-2 rounded-full border border-white/15',
         'bg-bg-3/95 px-3.5 py-2.5 text-[12px] font-semibold text-white shadow-lift backdrop-blur-md',
-        'bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-3 lg:bottom-6 lg:right-6',
+        'bottom-[calc(6.25rem+env(safe-area-inset-bottom))] left-3 lg:bottom-6 lg:left-[calc(13.5rem)] lg:right-auto',
         'hover:bg-bg-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/35',
       )}
       onClick={openPrompt}

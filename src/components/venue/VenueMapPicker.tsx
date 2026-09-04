@@ -24,7 +24,7 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
   const [selected, setSelected] = useState<PlaceSuggestion | null>(confirmed)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showPasteLink, setShowPasteLink] = useState(false)
+  const [showPasteLink, setShowPasteLink] = useState(!location)
   const [mapLink, setMapLink] = useState('')
   const [linkName, setLinkName] = useState('')
 
@@ -45,26 +45,24 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
       setError('Type a place name to search.')
       return
     }
-    if (!location) {
-      setError('Choose your area first so we can search nearby.')
-      return
-    }
     setBusy(true)
     setError(null)
     try {
-      const list = await searchPlaces(q, {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        areaLabel: location.label,
-        countryCode: 'in',
-        maxRadiusMeters: 100_000,
-      })
+      const list = location
+        ? await searchPlaces(q, {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            areaLabel: location.label,
+            countryCode: 'in',
+            maxRadiusMeters: 100_000,
+          })
+        : await searchPlaces(q)
       setResults(list)
       if (list.length === 0) {
         setError(
           areaHint
             ? `No places found near ${areaHint}. Paste a map link below, or try a more specific search.`
-            : 'No places found nearby. Paste a map link below, or try a more specific search.',
+            : 'No places found. Include the city in your search, or paste a map link below.',
         )
         setShowPasteLink(true)
       }
@@ -130,7 +128,7 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
         </label>
         <PrimaryButton
           type="button"
-          disabled={busy || !location}
+          disabled={busy}
           onClick={() => void runSearch()}
           className="shrink-0 px-4"
         >
@@ -140,8 +138,8 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
 
       {!location ? (
         <p className="glass px-3 py-2 text-[13px] text-white/70">
-          Set your area from Home first — search uses your location to find
-          nearby venues only.
+          Search with a city name (e.g. “turf Kozhikode”), or paste a Google
+          Maps link below.
         </p>
       ) : null}
 

@@ -307,7 +307,7 @@ export function HostPage() {
   if (!user) {
     return (
       <div>
-        <Header title="Host a game" backTo="/home" />
+        <Header title="Host a game" />
         <div className="page-pad space-y-4 py-6">
           <p className="text-[14px] text-muted">Please sign in to host a game.</p>
           <PrimaryButton fullWidth onClick={() => navigate('/auth?next=/host')}>
@@ -323,7 +323,6 @@ export function HostPage() {
       <Header
         title="Host a game"
         subtitle={`${String(STEPS[step - 1].n).padStart(2, '0')} ${STEPS[step - 1].label.toUpperCase()} · ${step} of ${STEPS.length}`}
-        backTo={step > 1 ? undefined : '/home'}
         onBack={step > 1 ? () => setStep((s) => s - 1) : undefined}
       />
 

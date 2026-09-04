@@ -6,7 +6,6 @@ export interface PhoneVerificationStart {
   challengeId: string
   phone: string
   expiresAt: string
-  devCode?: string | null
 }
 
 export async function requestPhoneVerification(
@@ -24,7 +23,6 @@ export async function requestPhoneVerification(
     challenge_id?: string
     phone?: string
     expires_at?: string
-    dev_code?: string | null
   } | null
 
   if (!row?.challenge_id || !row.phone) {
@@ -35,7 +33,6 @@ export async function requestPhoneVerification(
     challengeId: row.challenge_id,
     phone: row.phone,
     expiresAt: row.expires_at ?? '',
-    devCode: row.dev_code ?? null,
   }
 }
 

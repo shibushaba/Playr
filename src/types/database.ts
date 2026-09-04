@@ -1005,7 +1005,7 @@ export interface Database {
           p_clear_phone?: boolean
           p_clear_avatar?: boolean
         }
-        Returns: Database['public']['Tables']['profiles']['Row']
+        Returns: Json
       }
       get_game_contact_phone: {
         Args: { p_game_id: string; p_target_user_id: string }
@@ -1083,11 +1083,11 @@ export interface Database {
       }
       get_my_profile: {
         Args: Record<string, never>
-        Returns: Database['public']['Tables']['profiles']['Row']
+        Returns: Json
       }
       ensure_my_profile: {
         Args: Record<string, never>
-        Returns: Database['public']['Tables']['profiles']['Row']
+        Returns: Json
       }
       ensure_host_player: {
         Args: { p_game_id: string }

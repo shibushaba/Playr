@@ -73,7 +73,7 @@ export function MyGamesPage() {
   if (authLoading || (user && loading)) {
     return (
       <div>
-        <Header title="My Games" />
+        <Header title="Games" />
         <PageContent className="page-pad py-8">
           <LoadingBlock />
         </PageContent>
@@ -84,7 +84,7 @@ export function MyGamesPage() {
   if (!user) {
     return (
       <div>
-        <Header title="My Games" />
+        <Header title="Games" />
         <PageContent className="page-pad space-y-4 py-6">
           <p className="text-[14px] text-muted">Please sign in to see your games.</p>
           <PrimaryButton fullWidth onClick={() => navigate('/auth?next=/my-games')}>
@@ -97,7 +97,7 @@ export function MyGamesPage() {
 
   return (
     <div>
-      <Header title="My Games" subtitle="Spots, hosting & history" />
+      <Header title="Games" subtitle="Spots, hosting & history" />
       <PageContent className="page-pad py-5">
         <MotionTabBar>
           {(
@@ -118,11 +118,23 @@ export function MyGamesPage() {
             <EmptyState title="Couldn't load games" description={error} />
           ) : filtered.length === 0 ? (
             <EmptyState
-              title="You haven't joined any games yet."
-              description="Find a nearby game on Home, or host one yourself."
+              title={
+                tab === 'hosting'
+                  ? 'You are not hosting anything yet.'
+                  : tab === 'past'
+                    ? 'No past games yet.'
+                    : "You haven't joined any games yet."
+              }
+              description={
+                tab === 'hosting'
+                  ? 'Use Host in the tab bar when you have a venue booked.'
+                  : 'Find a nearby game on Play, or host one yourself.'
+              }
               action={
-                <Link to="/home">
-                  <PrimaryButton>Find a game</PrimaryButton>
+                <Link to={tab === 'hosting' ? '/host' : '/home'}>
+                  <PrimaryButton>
+                    {tab === 'hosting' ? 'Host a game' : 'Find a game'}
+                  </PrimaryButton>
                 </Link>
               }
             />

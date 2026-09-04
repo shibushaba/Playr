@@ -22,7 +22,7 @@ import {
 import { resendEmailVerification } from '@/services/verification'
 import { Camera } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 export function ProfilePage() {
   const { user, profile, signOut, loading, refreshProfile, applyProfile } = useAuth()
@@ -72,7 +72,7 @@ export function ProfilePage() {
   if (loading) {
     return (
       <div>
-        <Header title="Profile" />
+        <Header title="You" />
         <div className="page-pad py-8">
           <LoadingBlock />
         </div>
@@ -83,7 +83,7 @@ export function ProfilePage() {
   if (!user) {
     return (
       <div>
-        <Header title="Profile" />
+        <Header title="You" />
         <div className="page-pad space-y-4 py-6">
           <p className="text-[14px] text-white/45">Sign in to view your PLAYR profile.</p>
           <PrimaryButton fullWidth onClick={() => navigate('/auth')}>
@@ -180,7 +180,7 @@ export function ProfilePage() {
 
   return (
     <div>
-      <Header title="Profile" right={<NotificationBell />} />
+      <Header title="You" right={<NotificationBell />} />
       <div className="page-pad space-y-8 py-6 pb-10">
         <div className="flex items-center gap-4 border-b border-white/10 pb-6">
           <button
@@ -435,21 +435,6 @@ export function ProfilePage() {
         </section>
 
         <FeedbackSheet open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-
-        <div className="glass-elevated p-5">
-          <p className="label-caps">Host</p>
-          <p className="mt-2 text-[18px] font-semibold tracking-tight text-white">
-            Ready to host?
-          </p>
-          <p className="mt-1 text-[13px] text-white/45">
-            You book the venue. PLAYR helps you fill the roster.
-          </p>
-          <Link to="/host" className="mt-5 block">
-            <PrimaryButton fullWidth>
-              Host a game
-            </PrimaryButton>
-          </Link>
-        </div>
 
         <SecondaryButton
           fullWidth

@@ -95,8 +95,9 @@ export function ExplorePage() {
   return (
     <div>
       <Header
-        title="Explore"
-        subtitle="Games, venues & groups"
+        title="Search"
+        subtitle="Games, venues & clubs"
+        backTo="/home"
         right={
           <MotionTextLink onClick={() => setPickerOpen(true)}>Area</MotionTextLink>
         }
@@ -122,7 +123,7 @@ export function ExplorePage() {
                   [
                     ['games', 'Games'],
                     ['venues', 'Venues'],
-                    ['groups', 'Groups'],
+                    ['groups', 'Clubs'],
                   ] as const
                 ).map(([id, label]) => (
                   <MotionTab key={id} active={tab === id} onClick={() => setTab(id)}>

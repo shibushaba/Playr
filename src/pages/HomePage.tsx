@@ -18,7 +18,7 @@ import { isSupabaseConfigured } from '@/lib/supabase'
 import { getNearbyGames, getNearbyVenues } from '@/services/discovery'
 import { listSports } from '@/services/sports'
 import type { GameListItem, SportRecord, VenueRecord } from '@/types/domain'
-import { ChevronDown, Plus } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -176,39 +176,38 @@ export function HomePage() {
 
   return (
     <div className="pb-8">
-      <header className="page-pad border-b border-white/10 pt-6 pb-5">
+      <header className="page-pad border-b border-white/10 pt-[max(1rem,env(safe-area-inset-top))] pb-4">
         <FadeIn>
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="font-[family-name:var(--font-display)] text-[18px] font-semibold uppercase tracking-[0.14em] text-white">
-              PLAYR
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            aria-label={`Change location, currently ${locationLabel}`}
+            className="min-h-11 flex-1 text-left"
+          >
+            <p className="label-caps">
+              {greeting()}
+              {greetName ? ` ${greetName}` : ''}
             </p>
-            <button
-              type="button"
-              onClick={() => setPickerOpen(true)}
-              aria-label={`Change location, currently ${locationLabel}`}
-              className="mt-3 flex flex-col items-start gap-0.5 text-left"
-            >
-              <span className="group inline-flex items-center gap-1.5 text-[13px] text-white/70 transition hover:text-white">
-                {locationLabel}
-                <ChevronDown className="motion-icon-chevron h-3.5 w-3.5" />
+            <span className="group mt-1 inline-flex items-center gap-1.5 text-[16px] font-semibold tracking-tight text-white transition hover:text-white/80">
+              {locationLabel}
+              <ChevronDown className="motion-icon-chevron h-4 w-4 text-white/50" />
+            </span>
+            {isGps ? (
+              <span className="mt-0.5 block text-[11px] text-white/40">
+                Using your location
               </span>
-              {isGps ? (
-                <span className="text-[11px] text-white/40">
-                  ● Using your location
-                </span>
-              ) : location?.source === 'manual' ? (
-                <span className="text-[11px] text-white/40">
-                  Manual area
-                </span>
-              ) : null}
-            </button>
-          </div>
+            ) : location?.source === 'manual' ? (
+              <span className="mt-0.5 block text-[11px] text-white/40">
+                Manual area
+              </span>
+            ) : null}
+          </button>
           <NotificationBell />
         </div>
 
         {(permission === 'denied' || permission === 'unavailable') && !location ? (
-          <div className="glass mt-5 p-4">
+          <div className="glass mt-4 p-4">
             <p className="text-[14px] font-medium text-white">Location is off</p>
             <p className="mt-1 text-[13px] text-white/45">
               Choose an area to see nearby games.
@@ -219,18 +218,12 @@ export function HomePage() {
           </div>
         ) : null}
 
-        <p className="mt-8 text-[14px] text-white/45">
-          {greeting()}
-          {greetName ? ` ${greetName}.` : ''}
-        </p>
-        <h1 className="display-lg mt-2 max-w-md">
-          What are you playing?
-        </h1>
-        <Link to="/host" className="mt-6 block">
-          <PrimaryButton fullWidth className="gap-2">
-            <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-            Create a game
-          </PrimaryButton>
+        <Link
+          to="/explore"
+          className="glass motion-glass mt-4 flex min-h-12 items-center gap-3 px-4 text-left transition hover:border-white/20"
+        >
+          <Search className="h-4 w-4 shrink-0 text-white/40" strokeWidth={1.75} aria-hidden />
+          <span className="text-[15px] text-white/35">Search games, venues, sports…</span>
         </Link>
         </FadeIn>
       </header>
@@ -268,7 +261,7 @@ export function HomePage() {
       <section className="page-pad mt-10">
         <div className="mb-5 flex items-end justify-between gap-3">
           <div>
-            <h2 className="section-label">Nearby tonight</h2>
+            <h2 className="section-label">Nearby</h2>
             <p className="mt-1 text-[13px] text-white/45">
               {loading ? 'Loading…' : 'Tonight and upcoming'}
             </p>
@@ -291,14 +284,14 @@ export function HomePage() {
         ) : games.length === 0 ? (
           <EmptyState
             title="No games near you"
-            description={`There aren't any games near ${locationLabel} right now.`}
+            description="No pickup games in this area right now. Search farther out, or host when you have a venue."
             action={
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Link to="/host">
-                  <PrimaryButton>Create a game</PrimaryButton>
-                </Link>
                 <Link to="/explore">
-                  <PrimaryButton variant="outline">Explore venues</PrimaryButton>
+                  <PrimaryButton>Search nearby</PrimaryButton>
+                </Link>
+                <Link to="/host">
+                  <PrimaryButton variant="outline">Host instead</PrimaryButton>
                 </Link>
               </div>
             }

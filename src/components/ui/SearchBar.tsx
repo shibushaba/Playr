@@ -43,7 +43,7 @@ export function SearchBar({
           type="button"
           aria-label="Clear search"
           onClick={() => onChange('')}
-          className="motion-icon-btn motion-clear-in h-8 w-8 rounded-[6px] border-0 bg-transparent p-0 text-white/40 shadow-none hover:bg-white/[0.06]"
+          className="motion-icon-btn motion-clear-in flex h-11 w-11 items-center justify-center rounded-[6px] border-0 bg-transparent p-0 text-white/40 shadow-none hover:bg-white/[0.06]"
         >
           <X className="h-4 w-4" />
         </button>

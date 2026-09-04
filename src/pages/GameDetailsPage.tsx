@@ -437,7 +437,7 @@ export function GameDetailsPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="glass flex h-10 w-10 items-center justify-center text-white/45 transition hover:text-white"
+              className="glass flex h-11 w-11 items-center justify-center text-white/45 transition hover:text-white"
               aria-label="Report game"
               onClick={() => {
                 setReportTarget({ title: 'Report Game' })

@@ -56,7 +56,7 @@ export function SportChip({ sport, selected, onClick, tile }: Props) {
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        'motion-btn sport-chip-inline inline-flex min-h-10 shrink-0 items-center gap-2 px-4 text-[11px] font-semibold uppercase tracking-[0.08em]',
+        'motion-btn sport-chip-inline inline-flex min-h-11 shrink-0 items-center gap-2 px-4 text-[11px] font-semibold uppercase tracking-[0.08em]',
         selected
           ? 'sport-tile-chip--active text-white'
           : 'text-white/60 hover:text-white',
