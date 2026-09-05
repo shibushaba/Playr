@@ -1,5 +1,6 @@
 import { cn } from '@/lib/format'
-import { Check } from 'lucide-react'
+import { Icon } from '@/components/ui/Icon'
+import { Tick02Icon } from '@/icons/actions'
 import type { ReactNode } from 'react'
 
 interface Props {
@@ -22,7 +23,7 @@ export function SuccessFeedback({
         className,
       )}
     >
-      <Check className="motion-success-icon h-8 w-8" strokeWidth={2.25} />
+      <Icon icon={Tick02Icon} size={32} className="motion-success-icon" />
       <span className="text-[15px] font-semibold uppercase tracking-[0.08em]">
         {label}
       </span>

@@ -1,9 +1,11 @@
+import { Icon } from '@/components/ui/Icon'
+import { FootballIcon } from '@/icons/actions'
 import { cn } from '@/lib/format'
 
 const sizes = {
-  sm: 'text-[1.5rem]',
-  md: 'text-[2.25rem]',
-  lg: 'text-[3rem]',
+  sm: 24,
+  md: 36,
+  lg: 48,
 } as const
 
 interface Props {
@@ -11,7 +13,7 @@ interface Props {
   className?: string
 }
 
-/** Rotating Boxicons football — primary loading indicator. */
+/** Rotating football — route-level loading only. */
 export function LoadingBall({ size = 'md', className }: Props) {
   return (
     <div
@@ -19,7 +21,12 @@ export function LoadingBall({ size = 'md', className }: Props) {
       role="status"
       aria-label="Loading"
     >
-      <i className={cn('bx bx-football', sizes[size])} aria-hidden />
+      <Icon
+        icon={FootballIcon}
+        size={sizes[size]}
+        className="motion-loading-ball-icon"
+        aria-hidden
+      />
       <span className="sr-only">Loading</span>
     </div>
   )

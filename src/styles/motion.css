@@ -651,9 +651,8 @@
   filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.4));
 }
 
-.motion-loading-ball .bx-football {
+.motion-loading-ball-icon {
   display: block;
-  line-height: 1;
   animation: motion-ball-spin 1.1s linear infinite;
 }
 
@@ -768,7 +767,7 @@
     filter: none !important;
   }
 
-  .motion-loading-ball .bx-football {
+  .motion-loading-ball-icon {
     animation: motion-ball-pulse 1.2s ease-in-out infinite;
   }
 

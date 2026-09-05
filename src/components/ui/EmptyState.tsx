@@ -5,13 +5,25 @@ interface Props {
   title: string
   description?: string
   action?: ReactNode
+  preview?: ReactNode
   className?: string
 }
 
-export function EmptyState({ title, description, action, className }: Props) {
+export function EmptyState({
+  title,
+  description,
+  action,
+  preview,
+  className,
+}: Props) {
   return (
-    <div className={cn('glass motion-enter px-5 py-10', className)}>
-      <h2 className="font-[family-name:var(--font-display)] text-[22px] font-semibold tracking-tight text-white">
+    <div className={cn('px-1 py-8', className)}>
+      {preview ? (
+        <div className="pointer-events-none mb-6 opacity-40" aria-hidden>
+          {preview}
+        </div>
+      ) : null}
+      <h2 className="font-[family-name:var(--font-display)] text-[20px] font-semibold tracking-tight text-white">
         {title}
       </h2>
       {description ? (
@@ -19,7 +31,7 @@ export function EmptyState({ title, description, action, className }: Props) {
           {description}
         </p>
       ) : null}
-      {action ? <div className="mt-6">{action}</div> : null}
+      {action ? <div className="mt-5">{action}</div> : null}
     </div>
   )
 }

@@ -17,7 +17,8 @@ import {
 } from '@/lib/maps'
 import { requestBrowserPosition } from '@/services/checkin'
 import type { VenueRecord } from '@/types/domain'
-import { MapPin, Navigation } from 'lucide-react'
+import { Icon } from '@/components/ui/Icon'
+import { Location01Icon, Navigation01Icon } from '@/icons/actions'
 import { useMemo, useState } from 'react'
 
 type ReachStatus = 'idle' | 'checking' | 'ready' | 'far' | 'error'
@@ -93,7 +94,7 @@ export function VenueReachPanel({
   return (
     <section className={className}>
       <div className="flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-white/45" aria-hidden />
+        <Icon icon={Location01Icon} size={16} className="text-white/45" aria-hidden />
         <p className="label-caps">Venue location</p>
       </div>
 
@@ -175,7 +176,7 @@ export function VenueReachPanel({
             className="min-h-11"
           >
             <span className="inline-flex items-center justify-center gap-2">
-              <Navigation className="h-4 w-4" />
+              <Icon icon={Navigation01Icon} size={16} />
               Get directions
             </span>
           </PrimaryButton>

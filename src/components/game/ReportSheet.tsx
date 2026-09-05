@@ -9,7 +9,8 @@ import {
   createReport,
   type ReportReason,
 } from '@/services/reports'
-import { X } from 'lucide-react'
+import { Icon } from '@/components/ui/Icon'
+import { Cancel01Icon } from '@/icons/actions'
 import { useEffect, useState } from 'react'
 
 interface Props {
@@ -113,7 +114,7 @@ export function ReportSheet({
             className="glass flex h-11 w-11 items-center justify-center text-white/70 transition hover:text-white"
             aria-label="Close"
           >
-            <X className="h-5 w-5" />
+            <Icon icon={Cancel01Icon} size={20} />
           </button>
         </div>
 

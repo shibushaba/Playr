@@ -1,4 +1,4 @@
-import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { ListPageSkeleton } from '@/components/motion/Skeleton'
 import { GroupCard } from '@/components/group/GroupCard'
 import { Header } from '@/components/layout/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -29,7 +29,7 @@ export function GroupsPage() {
         right={
           <Link
             to="/groups/new"
-            className="flex min-h-11 items-center text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
+            className="flex min-h-11 items-center text-[13px] font-medium text-white/55 transition hover:text-white"
           >
             New
           </Link>
@@ -37,20 +37,19 @@ export function GroupsPage() {
       />
       <div className="page-pad space-y-4 py-5">
         <p className="text-[14px] leading-relaxed text-white/45">
-          Daily, weekly, custom — every occurrence becomes its own game with its
-          own roster, deadline, and attendance.
+          Daily, weekly, custom — each occurrence is its own game.
         </p>
         {loading ? (
-          <LoadingBlock className="h-32" />
+          <ListPageSkeleton />
         ) : error ? (
           <EmptyState title="Couldn't load groups" description={error} />
         ) : groups.length === 0 ? (
           <EmptyState
-            title="Create a regular game group."
+            title="Create a regular club."
             description="Set a schedule once. PLAYR creates each game occurrence."
             action={
               <Link to="/groups/new">
-                <PrimaryButton>Create group</PrimaryButton>
+                <PrimaryButton>Create club</PrimaryButton>
               </Link>
             }
           />
@@ -64,7 +63,7 @@ export function GroupsPage() {
         {groups.length > 0 ? (
           <div className="pt-2">
             <Link to="/groups/new">
-              <PrimaryButton fullWidth>Create a recurring group</PrimaryButton>
+              <PrimaryButton fullWidth>Create a club</PrimaryButton>
             </Link>
           </div>
         ) : null}

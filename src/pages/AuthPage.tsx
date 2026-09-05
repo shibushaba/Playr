@@ -1,10 +1,11 @@
 import { Header } from '@/components/layout/Header'
 import { PageContent } from '@/components/motion/PageContent'
 import { MotionTab, MotionTabBar } from '@/components/motion/MotionTab'
+import { Icon } from '@/components/ui/Icon'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { useAuth } from '@/contexts/AuthContext'
+import { ViewIcon, ViewOffSlashIcon } from '@/icons/actions'
 import { isSupabaseConfigured } from '@/lib/supabase'
-import { Eye, EyeOff } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -170,9 +171,9 @@ export function AuthPage() {
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4" aria-hidden />
+                  <Icon icon={ViewOffSlashIcon} size={16} aria-hidden />
                 ) : (
-                  <Eye className="h-4 w-4" aria-hidden />
+                  <Icon icon={ViewIcon} size={16} aria-hidden />
                 )}
               </button>
             </div>
@@ -197,7 +198,7 @@ export function AuthPage() {
         </PrimaryButton>
         <button
           type="button"
-          className="mt-3 flex min-h-11 w-full items-center justify-center text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
+          className="mt-3 flex min-h-11 w-full items-center justify-center text-[13px] font-medium text-white/45 transition hover:text-white"
           onClick={() => navigate('/home')}
         >
           Browse as guest
@@ -246,7 +247,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="label-caps mb-2 block">{label}</span>
+      <span className="field-label">{label}</span>
       {children}
     </label>
   )

@@ -23,8 +23,8 @@ export function PrimaryButton({
       type={type}
       disabled={disabled}
       className={cn(
-        'motion-btn inline-flex items-center justify-center gap-2 rounded-[8px] font-semibold tracking-[0.04em] uppercase disabled:cursor-not-allowed',
-        size === 'lg' ? 'min-h-12 px-5 text-[13px]' : 'min-h-11 px-4 text-[12px]',
+        'motion-btn inline-flex items-center justify-center gap-2 rounded-[8px] font-semibold disabled:cursor-not-allowed',
+        size === 'lg' ? 'min-h-12 px-5 text-[14px]' : 'min-h-11 px-4 text-[13px]',
         variant === 'solid' &&
           cn(
             'motion-btn-solid bg-white text-cta shadow-[0_8px_24px_rgba(0,0,0,0.20)] hover:bg-white/90',

@@ -1,7 +1,8 @@
 import { StickyChrome } from '@/components/ui/ChromePosition'
 import { GlassChromeBar } from '@/components/ui/GlassChromeBar'
+import { Icon } from '@/components/ui/Icon'
+import { ArrowLeft01Icon } from '@/icons/navigation'
 import { cn } from '@/lib/format'
-import { ChevronLeft } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -24,7 +25,7 @@ export function Header({
   className,
   transparent,
 }: Props) {
-  const barClassName = 'px-3 py-2.5 sm:px-4 sm:py-3'
+  const barClassName = 'px-3 py-2 sm:px-4 sm:py-2.5'
 
   const content = (
     <div className="flex items-center gap-3">
@@ -35,7 +36,7 @@ export function Header({
             className="motion-btn motion-icon-back flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] border border-white/12 bg-white/[0.04] backdrop-blur-glass text-white hover:border-white/25 hover:bg-white/[0.08]"
             aria-label="Go back"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <Icon icon={ArrowLeft01Icon} size={20} />
           </Link>
         ) : (
           <button
@@ -44,19 +45,19 @@ export function Header({
             className="motion-btn motion-icon-back flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] border border-white/12 bg-white/[0.04] backdrop-blur-glass text-white hover:border-white/25 hover:bg-white/[0.08]"
             aria-label="Go back"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <Icon icon={ArrowLeft01Icon} size={20} />
           </button>
         )
       ) : null}
 
       <div className="min-w-0 flex-1">
         {title ? (
-          <h1 className="truncate font-[family-name:var(--font-display)] text-[14px] font-semibold uppercase tracking-[0.12em] text-white">
+          <h1 className="truncate font-[family-name:var(--font-display)] text-[17px] font-semibold tracking-tight text-white">
             {title}
           </h1>
         ) : null}
         {subtitle ? (
-          <p className="truncate text-[12px] text-white/45">{subtitle}</p>
+          <p className="truncate text-[13px] text-white/45">{subtitle}</p>
         ) : null}
       </div>
 

@@ -1,8 +1,10 @@
 import { Header } from '@/components/layout/Header'
+import { Icon } from '@/components/ui/Icon'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
+import { Tick02Icon } from '@/icons/actions'
 import { useAuth } from '@/contexts/AuthContext'
-import { useEffect } from 'react'
 import { formatPhoneDisplay, isValidE164 } from '@/lib/phone'
+import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 /** Lightweight post-signup onboarding — profile details can be added anytime. */
@@ -28,6 +30,8 @@ export function WelcomePage() {
   const dest = next.startsWith('/') ? next : '/home'
   const name = profile?.display_name?.trim()
   const hasPhone = isValidE164(profile?.phone)
+  const doneCount = (name ? 1 : 0) + (hasPhone ? 1 : 0)
+  const progress = (doneCount / 2) * 100
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -40,12 +44,29 @@ export function WelcomePage() {
           <p className="mt-3 text-[14px] leading-relaxed text-white/45">
             Browse nearby games now. Add a photo or bio anytime from You.
           </p>
+          <div className="mt-5">
+            <p className="text-[13px] text-white/45">
+              {doneCount} of 2 ready
+            </p>
+            <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full bg-white transition-[width] duration-[var(--motion-normal)]"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
         </div>
 
-        <ul className="glass space-y-0 overflow-hidden">
-          <li className="flex items-start gap-4 border-b border-white/10 p-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-[12px] font-semibold">
-              1
+        <ul className="space-y-2">
+          <li className="glass flex items-start gap-4 p-4">
+            <span
+              className={
+                name
+                  ? 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-cta'
+                  : 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-[13px] font-semibold'
+              }
+            >
+              {name ? <Icon icon={Tick02Icon} size={18} /> : '1'}
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[15px] font-semibold text-white">Name</p>
@@ -53,13 +74,16 @@ export function WelcomePage() {
                 {name || 'Add your name in profile'}
               </p>
             </div>
-            <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-status-success">
-              {name ? 'Done' : '—'}
-            </span>
           </li>
-          <li className="flex items-start gap-4 p-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-[12px] font-semibold">
-              2
+          <li className="glass flex items-start gap-4 p-4">
+            <span
+              className={
+                hasPhone
+                  ? 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-cta'
+                  : 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-[13px] font-semibold'
+              }
+            >
+              {hasPhone ? <Icon icon={Tick02Icon} size={18} /> : '2'}
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[15px] font-semibold text-white">Phone</p>
@@ -69,15 +93,6 @@ export function WelcomePage() {
                   : 'Add your number in profile'}
               </p>
             </div>
-            <span
-              className={
-                hasPhone
-                  ? 'text-[12px] font-semibold uppercase tracking-[0.06em] text-status-success'
-                  : 'text-[12px] font-semibold uppercase tracking-[0.06em] text-status-warning'
-              }
-            >
-              {hasPhone ? 'Done' : 'Required'}
-            </span>
           </li>
         </ul>
       </div>
@@ -88,7 +103,7 @@ export function WelcomePage() {
         </PrimaryButton>
         <button
           type="button"
-          className="mt-3 flex min-h-11 w-full items-center justify-center text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
+          className="mt-3 flex min-h-11 w-full items-center justify-center text-[13px] font-medium text-white/45 transition hover:text-white"
           onClick={() => navigate('/profile')}
         >
           Set up profile

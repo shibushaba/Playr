@@ -6,12 +6,12 @@ export function LandingPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="page-pad flex items-center justify-between pt-[max(1rem,env(safe-area-inset-top))] pb-4">
-        <p className="font-[family-name:var(--font-display)] text-[14px] font-semibold uppercase tracking-[0.14em] text-white">
+        <p className="font-[family-name:var(--font-display)] text-[16px] font-semibold tracking-tight text-white">
           PLAYR
         </p>
         <Link
           to="/auth"
-          className="motion-link flex min-h-11 items-center text-[12px] font-semibold uppercase tracking-[0.08em] text-white/55"
+          className="motion-link flex min-h-11 items-center text-[14px] font-medium text-white/55"
         >
           Sign in
         </Link>
@@ -19,7 +19,7 @@ export function LandingPage() {
 
       <FadeIn>
         <main className="page-pad flex flex-1 flex-col justify-end pb-6 pt-10">
-          <p className="label-caps">Pickup sports</p>
+          <p className="text-[13px] text-white/45">Pickup sports</p>
           <h1 className="mt-3 font-[family-name:var(--font-display)] text-[clamp(3rem,16vw,5.5rem)] font-semibold leading-[0.9] tracking-tight text-white">
             Find a game.
           </h1>

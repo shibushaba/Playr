@@ -1,6 +1,6 @@
 import { StatusTransition } from '@/components/motion/StatusTransition'
 import { SuccessFeedback } from '@/components/motion/SuccessFeedback'
-import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { DetailHeroSkeleton } from '@/components/motion/Skeleton'
 import { ParticipantStatus } from '@/components/game/GameAvailability'
 import { Header } from '@/components/layout/Header'
 import { ProfileCompletionGate } from '@/components/trust/ProfileCompletionGate'
@@ -113,7 +113,7 @@ export function JoinGamePage() {
       <div>
         <Header title="Join game" backTo={id ? `/games/${id}` : '/home'} />
         <div className="page-pad py-8">
-          <LoadingBlock />
+          <DetailHeroSkeleton />
         </div>
       </div>
     )

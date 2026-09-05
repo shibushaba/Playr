@@ -1,8 +1,8 @@
-import { LoadingBlock } from '@/components/motion/LoadingBlock'
 import { MotionTabPill } from '@/components/motion/MotionTab'
+import { DetailHeroSkeleton } from '@/components/motion/Skeleton'
 import { StatusTransition } from '@/components/motion/StatusTransition'
 import { CallButton } from '@/components/game/CallButton'
-import { Countdown, GameStatus } from '@/components/game/GameStatus'
+import { Countdown } from '@/components/game/GameStatus'
 import { GameChatPanel } from '@/components/game/GameChatPanel'
 import { GameAvailability, ParticipantStatus } from '@/components/game/GameAvailability'
 import { PlayerCount } from '@/components/game/PlayerCount'
@@ -15,6 +15,7 @@ import { Header } from '@/components/layout/Header'
 import { PlayerAvatar } from '@/components/player/PlayerAvatar'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { GlassChromeBar } from '@/components/ui/GlassChromeBar'
+import { Icon } from '@/components/ui/Icon'
 import { OverlaySheet } from '@/components/ui/OverlaySheet'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
@@ -29,6 +30,7 @@ import {
   formatInr,
   formatRelativeDeadline,
   formatTime,
+  statusLabel,
 } from '@/lib/format'
 import {
   disputeAttendance,
@@ -52,15 +54,14 @@ import {
 } from '@/services/verification'
 import type { GameDetail, GameParticipant } from '@/types/domain'
 import {
-  Flag,
-  Info,
-  Lock,
-  MapPin,
-  MessageCircle,
-  Shield,
-  Trash2,
-  Users,
-} from 'lucide-react'
+  Chat01Icon,
+  Delete02Icon,
+  Flag01Icon,
+  InformationCircleIcon,
+  Location01Icon,
+  LockIcon,
+} from '@/icons/actions'
+import { UserGroupIcon } from '@/icons/navigation'
 import { useGameChatUnread } from '@/hooks/useGameChatUnread'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -236,9 +237,9 @@ export function GameDetailsPage() {
   if (loading) {
     return (
       <div>
-        <Header title="Game details" backTo="/home" />
+        <Header title="Game" backTo="/home" />
         <div className="page-pad py-8">
-          <LoadingBlock className="h-48" />
+          <DetailHeroSkeleton />
         </div>
       </div>
     )
@@ -247,7 +248,7 @@ export function GameDetailsPage() {
   if (error || !game) {
     return (
       <div>
-        <Header title="Game details" backTo="/home" />
+        <Header title="Game" backTo="/home" />
         <div className="page-pad py-6">
           <EmptyState
             title="Game unavailable"
@@ -470,23 +471,20 @@ export function GameDetailsPage() {
   return (
     <div className="lg:pb-24">
       <Header
-        title="Game details"
+        title={game.venue?.name ?? 'Game'}
         backTo="/home"
         right={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="glass flex h-11 w-11 items-center justify-center text-white/45 transition hover:text-white"
-              aria-label="Report game"
-              onClick={() => {
-                setReportTarget({ title: 'Report Game' })
-                setReportOpen(true)
-              }}
-            >
-              <Flag className="h-4 w-4" />
-            </button>
-            <StatusBadge status={game.status} />
-          </div>
+          <button
+            type="button"
+            className="glass flex h-11 w-11 items-center justify-center text-white/45 transition hover:text-white"
+            aria-label="Report game"
+            onClick={() => {
+              setReportTarget({ title: 'Report Game' })
+              setReportOpen(true)
+            }}
+          >
+            <Icon icon={Flag01Icon} size={16} />
+          </button>
         }
       />
 
@@ -496,8 +494,8 @@ export function GameDetailsPage() {
           <div className="flex flex-wrap items-center gap-3">
             <p className="label-caps">{game.sport.name}</p>
             {game.visibility !== 'public' ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
-                <Lock className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1 text-[12px] text-muted">
+                <Icon icon={LockIcon} size={12} />
                 {game.visibility === 'private' ? 'Private' : 'Invite only'}
               </span>
             ) : null}
@@ -509,39 +507,35 @@ export function GameDetailsPage() {
             {formatDay(game.startsAt)} · {formatDateTime(game.startsAt)}
           </p>
           {game.title ? (
-            <h1 className="mt-4 text-[22px] font-semibold tracking-tight text-white">
+            <h1 className="mt-3 text-[20px] font-semibold tracking-tight text-white">
               {game.title}
             </h1>
-          ) : null}
+          ) : (
+            <h1 className="mt-3 text-[20px] font-semibold tracking-tight text-white">
+              {game.venue?.name ?? 'Venue TBD'}
+            </h1>
+          )}
         </header>
 
-        {/* Status banners — monochrome borders */}
-        {isCancelled ? (
-          <div className="glass-elevated glass-status-danger p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-status-danger/80">
-              × Cancelled
-            </p>
-            <p className="mt-2 text-[14px] leading-relaxed text-white/45">
-              This game was cancelled.
-            </p>
-          </div>
-        ) : null}
+        <GameStatusStrip
+          isCancelled={isCancelled}
+          isDraft={isDraft}
+          isHost={isHost}
+          isGameConfirmed={isGameConfirmed}
+          isLive={isLive}
+          isCompleted={isCompleted}
+          status={game.status}
+        />
 
         {isDraft && isHost ? (
           <section className="glass-elevated space-y-4 p-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-status-warning">
-                Draft — publish required
-              </p>
-              <p className="mt-2 text-[14px] leading-relaxed text-white/45">
-                Confirm the venue slot for this occurrence, then publish to open
-                it for players.
-              </p>
-            </div>
+            <p className="text-[14px] leading-relaxed text-white/55">
+              Confirm the venue slot, then publish to open it for players.
+            </p>
             {contactPhone ? (
-              <div className="glass p-3">
-                <p className="label-caps">Venue contact</p>
-                <p className="mt-1 text-[14px] text-white">
+              <div>
+                <p className="field-label">Venue contact</p>
+                <p className="text-[14px] text-white">
                   {formatPhoneDisplay(contactPhone)}
                 </p>
                 <CallButton phone={contactPhone} label="Call venue" className="mt-3" />
@@ -560,8 +554,8 @@ export function GameDetailsPage() {
                 </span>
               </label>
             ) : (
-              <p className="text-[13px] font-semibold text-status-success">
-                ✓ Venue booking confirmed
+              <p className="text-[13px] font-medium text-status-success">
+                Venue booking confirmed
               </p>
             )}
             <PrimaryButton
@@ -574,151 +568,58 @@ export function GameDetailsPage() {
           </section>
         ) : null}
 
-        {isDraft && !isHost ? (
-          <div className="glass-elevated p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-status-warning">
-              Not published yet
-            </p>
-            <p className="mt-2 text-[14px] leading-relaxed text-white/45">
-              The host hasn&apos;t opened this game for players yet.
-            </p>
-          </div>
-        ) : null}
-
-        {isGameConfirmed ? (
-          <div className="glass-elevated glass-status-success p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-status-success">
-              ✓ Confirmed
-            </p>
-            <p className="mt-2 text-[14px] leading-relaxed text-white/45">
-              Minimum players reached. Roster is locked — the host/venue
-              commitment is protected.
-            </p>
-          </div>
-        ) : null}
-
-        {isLive ? (
-          <div className="glass-elevated glass-status-live p-4">
-            <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-status-live animate-live-pulse">
-              <span className="status-dot" aria-hidden />
-              Live
-            </p>
-          </div>
-        ) : null}
-
-        {isCompleted ? (
-          <div className="glass p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-status-neutral">
-              ✓ Completed
-            </p>
-            {(myStatus === 'no_show' ||
-              myStatus === 'attended' ||
-              myStatus === 'confirmed') &&
-            !isHost ? (
-              <SecondaryButton
-                className="mt-3"
-                disabled={busy}
-                onClick={() => void submitDispute()}
-              >
-                Dispute attendance
-              </SecondaryButton>
-            ) : null}
-          </div>
+        {isCompleted &&
+        (myStatus === 'no_show' ||
+          myStatus === 'attended' ||
+          myStatus === 'confirmed') &&
+        !isHost ? (
+          <SecondaryButton disabled={busy} onClick={() => void submitDispute()}>
+            Dispute attendance
+          </SecondaryButton>
         ) : null}
 
         {isCompleted ? <GameFeedbackCard gameId={game.id} /> : null}
 
-        {/* Venue */}
-        <section className="border-y border-white/10 py-5">
-          <p className="label-caps">Venue</p>
-          <p className="mt-2 font-[family-name:var(--font-display)] text-[28px] font-semibold leading-tight tracking-tight text-white">
-            {game.venue?.name ?? 'Venue TBD'}
-          </p>
-          <p className="mt-1 text-[13px] text-white/45">
-            {game.venue?.address}
-            {game.venue?.city ? `, ${game.venue.city}` : null}
-          </p>
-          {game.distanceLabel ? (
-            <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-white/70">
-              {game.distanceLabel}
-            </p>
-          ) : null}
-          {venueDirectionsUrl ? (
-            <SecondaryButton
-              className="mt-4 min-h-11"
-              type="button"
-              onClick={() =>
-                window.open(venueDirectionsUrl, '_blank', 'noopener,noreferrer')
-              }
-            >
-              <span className="inline-flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Directions
-              </span>
-            </SecondaryButton>
-          ) : null}
-          {game.venueBookingConfirmedAt && game.dbStatus !== 'draft' ? (
-            <p className="mt-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-status-success">
-              ✓ Host confirmed venue
-            </p>
-          ) : null}
-          {game.venueBookingConfirmedAt && game.dbStatus !== 'draft' ? (
-            <p className="mt-1 text-[12px] text-white/45">
-              Host has confirmed the venue slot for this game.
-            </p>
-          ) : !hasVenueLocation && !game.distanceLabel ? (
-            <p className="mt-2 text-[12px] text-white/45">Host arranges venue</p>
-          ) : null}
-        </section>
-
-        {/* Players + confirmation */}
-        <section className="glass grid grid-cols-2 gap-4 p-5">
-          <div className="col-span-2 sm:col-span-1">
-            <p className="label-caps">Players</p>
-            <div className="mt-2">
-              {game.dbStatus === 'open' && !isGameConfirmed && !isLive && !isCompleted ? (
-                <GameAvailability
-                  currentPlayers={game.confirmedCount}
-                  maximumPlayers={game.maxPlayers}
-                />
-              ) : (
-                <PlayerCount
-                  confirmed={game.confirmedCount}
-                  max={game.maxPlayers}
-                  min={game.minPlayers}
-                  waitlist={game.waitlistCount}
-                />
-              )}
-            </div>
-            {isHost ? (
-              <ParticipantStatus
-                label="You're hosting"
-                tone="neutral"
-                className="mt-3"
+        <section className="flex items-end justify-between gap-4">
+          <div>
+            {game.dbStatus === 'open' && !isGameConfirmed && !isLive && !isCompleted ? (
+              <GameAvailability
+                currentPlayers={game.confirmedCount}
+                maximumPlayers={game.maxPlayers}
+                compact
+                layout="inline"
+                showProgress
               />
+            ) : (
+              <PlayerCount
+                confirmed={game.confirmedCount}
+                max={game.maxPlayers}
+                min={game.minPlayers}
+                waitlist={game.waitlistCount}
+              />
+            )}
+            {isHost ? (
+              <ParticipantStatus label="You're hosting" tone="neutral" className="mt-2" />
             ) : isConfirmedPlayer ? (
-              <ParticipantStatus label="You're in" tone="success" className="mt-3" />
+              <ParticipantStatus label="You're in" tone="success" className="mt-2" />
             ) : isReserved ? (
-              <ParticipantStatus label="Spot held" tone="warning" className="mt-3" />
+              <ParticipantStatus label="Spot held" tone="warning" className="mt-2" />
             ) : isWaitlisted ? (
-              <ParticipantStatus label="On waitlist" tone="warning" className="mt-3" />
+              <ParticipantStatus label="On waitlist" tone="warning" className="mt-2" />
             ) : null}
           </div>
-          <div>
-            <p className="label-caps">Share</p>
-            <p className="mt-2 text-[18px] font-semibold tabular-nums text-white">
+          {game.playerShareInr != null ? (
+            <p className="text-right text-[15px] font-semibold tabular-nums text-white">
               {formatInr(game.playerShareInr)}
-              {game.playerShareInr != null ? (
-                <span className="text-[12px] font-normal text-white/45"> /person</span>
-              ) : null}
+              <span className="block text-[12px] font-normal text-white/45">per person</span>
             </p>
-          </div>
+          ) : null}
         </section>
 
         {!deadlinePassed && game.dbStatus === 'open' ? (
           <section>
-            <p className="label-caps">Confirmation</p>
-            <p className="mt-2 text-[14px] text-white/70">
+            <p className="field-label">Confirmation</p>
+            <p className="text-[14px] text-white/70">
               Closes in{' '}
               {formatRelativeDeadline(game.confirmationDeadline, true).replace(
                 ' left to confirm',
@@ -730,70 +631,6 @@ export function GameDetailsPage() {
               className="mt-3"
             />
           </section>
-        ) : null}
-
-        {!isCancelled && !isCompleted && !isLive ? (
-          <GameStatus
-            game={{
-              status: game.status,
-              confirmationDeadline: game.confirmationDeadline,
-              confirmedCount: game.confirmedCount,
-              minPlayers: game.minPlayers,
-            }}
-          />
-        ) : null}
-
-        {/* Compact action row for confirmed players / host */}
-        {(isHost || isConfirmedPlayer) && !isCancelled ? (
-          <div className="flex flex-wrap gap-2">
-            {canSelfCheckIn && windowInfo?.playerWindowOpen ? (
-              <PrimaryButton
-                disabled={busy}
-                onClick={() => void doSelfCheckIn()}
-                className="min-h-11 flex-1"
-              >
-                {busy ? 'Checking in…' : 'Check in'}
-              </PrimaryButton>
-            ) : null}
-            {game.hostPhone && !isHost ? (
-              <CallButton phone={game.hostPhone} label="Call host" />
-            ) : null}
-            {canChat ? (
-              <SecondaryButton
-                className="min-h-11"
-                onClick={() => setTab('chat')}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <MessageCircle className="h-4 w-4" />
-                  Chat
-                  {chatUnread ? <UnreadDot /> : null}
-                </span>
-              </SecondaryButton>
-            ) : null}
-            {isHost ? (
-              <SecondaryButton
-                className="min-h-11"
-                disabled={busy}
-                onClick={() => {
-                  setBusy(true)
-                  setActionError(null)
-                  void createGameInvite({ gameId: game.id })
-                    .then(async (inv) => {
-                      const url = `${window.location.origin}/join/game/${inv.token}`
-                      await navigator.clipboard.writeText(url)
-                      setInviteCopied(true)
-                      window.setTimeout(() => setInviteCopied(false), 2000)
-                    })
-                    .catch((e) =>
-                      setActionError(toUserMessage(e, "Couldn't create invite.")),
-                    )
-                    .finally(() => setBusy(false))
-                }}
-              >
-                {inviteCopied ? 'Link copied' : 'Invite players'}
-              </SecondaryButton>
-            ) : null}
-          </div>
         ) : null}
 
         {actionError ? (
@@ -809,67 +646,68 @@ export function GameDetailsPage() {
           <p className="text-[13px] text-white/45">{checkInHint()}</p>
         ) : null}
 
-        <p className="flex gap-2 text-[13px] leading-relaxed text-white/45">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-white/70" />
-          Informational only. Paid offline directly to the host/venue. PLAYR
-          never collects or holds money.
-        </p>
+        {game.playerShareInr != null ? (
+          <p className="flex gap-2 text-[12px] leading-relaxed text-white/40">
+            <Icon icon={InformationCircleIcon} size={14} className="mt-0.5 shrink-0" />
+            Informational only. Paid offline to the host/venue. PLAYR never holds money.
+          </p>
+        ) : null}
 
         {game.description ? (
-          <section className="glass p-4">
-            <p className="label-caps">Host notes</p>
-            <p className="mt-2 text-[14px] leading-relaxed text-white/70">
+          <section>
+            <p className="field-label">Host notes</p>
+            <p className="text-[14px] leading-relaxed text-white/70">
               {game.description}
             </p>
           </section>
         ) : null}
 
-        {/* Host */}
-        <section className="glass p-4">
-          <div className="flex items-center justify-between">
-            <p className="label-caps">Host</p>
-            {game.hostPhone && !isHost ? (
-              <CallButton phone={game.hostPhone} label="Call host" />
-            ) : null}
-          </div>
-          <div className="mt-3">
-            <PlayerAvatar
-              player={{
-                name: game.host.displayName,
-                avatarUrl: game.host.avatarUrl,
-              }}
-              showName
-              size="md"
-            />
-          </div>
-        </section>
-
-        {(canChat || isConfirmedPlayer || isHost || hasVenueLocation) ? (
-          <GlassChromeBar className="flex gap-1 p-1">
-            <TabBtn
-              active={tab === 'players'}
-              onClick={() => setTab('players')}
-              icon={<Users className="h-4 w-4" />}
-              label="Players"
-            />
-            {hasVenueLocation ? (
-              <TabBtn
-                active={tab === 'location'}
-                onClick={() => setTab('location')}
-                icon={<MapPin className="h-4 w-4" />}
-                label="Location"
-              />
-            ) : null}
-            <TabBtn
-              active={tab === 'chat'}
-              onClick={() => setTab('chat')}
-              icon={<MessageCircle className="h-4 w-4" />}
-              label="Chat"
-              disabled={!canChat && !isHost}
-              showUnreadDot={chatUnread}
-            />
-          </GlassChromeBar>
+        {isHost ? (
+          <SecondaryButton
+            className="min-h-11"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true)
+              setActionError(null)
+              void createGameInvite({ gameId: game.id })
+                .then(async (inv) => {
+                  const url = `${window.location.origin}/join/game/${inv.token}`
+                  await navigator.clipboard.writeText(url)
+                  setInviteCopied(true)
+                  window.setTimeout(() => setInviteCopied(false), 2000)
+                })
+                .catch((e) =>
+                  setActionError(toUserMessage(e, "Couldn't create invite.")),
+                )
+                .finally(() => setBusy(false))
+            }}
+          >
+            {inviteCopied ? 'Link copied' : 'Invite players'}
+          </SecondaryButton>
         ) : null}
+
+        <GlassChromeBar className="flex gap-1 p-1">
+          <TabBtn
+            active={tab === 'players'}
+            onClick={() => setTab('players')}
+            icon={<Icon icon={UserGroupIcon} size={16} />}
+            label="Players"
+          />
+          <TabBtn
+            active={tab === 'location'}
+            onClick={() => setTab('location')}
+            icon={<Icon icon={Location01Icon} size={16} />}
+            label="Place"
+          />
+          <TabBtn
+            active={tab === 'chat'}
+            onClick={() => setTab('chat')}
+            icon={<Icon icon={Chat01Icon} size={16} />}
+            label="Chat"
+            disabled={!canChat && !isHost}
+            showUnreadDot={chatUnread}
+          />
+        </GlassChromeBar>
 
         {tab === 'chat' && (canChat || isHost) ? (
           <div key={tab} className="motion-panel-in">
@@ -887,24 +725,48 @@ export function GameDetailsPage() {
             }}
           />
           </div>
-        ) : tab === 'location' && game.venue && hasVenueLocation ? (
-          <div key={tab} className="motion-panel-in">
-          <div className="glass p-4">
-            <VenueReachPanel
-              venue={game.venue}
-              showCheckInHint={
-                isParticipant &&
-                (myStatus === 'confirmed' ||
-                  myStatus === 'attended' ||
-                  isGameConfirmed ||
-                  isLive)
-              }
-            />
-          </div>
+        ) : tab === 'location' ? (
+          <div key={tab} className="motion-panel-in space-y-3">
+            <div>
+              <p className="font-[family-name:var(--font-display)] text-[20px] font-semibold tracking-tight text-white">
+                {game.venue?.name ?? 'Venue TBD'}
+              </p>
+              <p className="mt-1 text-[13px] text-white/45">
+                {[game.venue?.address, game.venue?.city, game.distanceLabel]
+                  .filter(Boolean)
+                  .join(' · ') || 'Host arranges the venue.'}
+              </p>
+              {venueDirectionsUrl ? (
+                <SecondaryButton
+                  className="mt-3 min-h-11"
+                  type="button"
+                  onClick={() =>
+                    window.open(venueDirectionsUrl, '_blank', 'noopener,noreferrer')
+                  }
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Icon icon={Location01Icon} size={16} />
+                    Directions
+                  </span>
+                </SecondaryButton>
+              ) : null}
+            </div>
+            {game.venue && hasVenueLocation ? (
+              <VenueReachPanel
+                venue={game.venue}
+                showCheckInHint={
+                  isParticipant &&
+                  (myStatus === 'confirmed' ||
+                    myStatus === 'attended' ||
+                    isGameConfirmed ||
+                    isLive)
+                }
+              />
+            ) : null}
           </div>
         ) : (
           <section key={tab} className="motion-panel-in">
-            <p className="label-caps">
+            <p className="field-label">
               {isCompleted || isLive ? 'Attendance' : 'Roster'}
             </p>
             <div className="glass mt-4 overflow-hidden">
@@ -1008,7 +870,7 @@ export function GameDetailsPage() {
                             setReportOpen(true)
                           }}
                         >
-                          <Flag className="h-3.5 w-3.5" />
+                          <Icon icon={Flag01Icon} size={14} />
                         </button>
                       ) : null}
                     </div>
@@ -1022,7 +884,7 @@ export function GameDetailsPage() {
               ) : null}
             </div>
             <p className="mt-4 flex items-start gap-2 text-[12px] leading-relaxed text-white/45">
-              <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <Icon icon={LockIcon} size={14} className="mt-0.5 shrink-0" />
               Player phone numbers are visible only to the host — not to other
               players. Your number is not publicly displayed.
             </p>
@@ -1032,7 +894,7 @@ export function GameDetailsPage() {
         {game.groupId ? (
           <Link
             to={`/groups/${game.groupId}`}
-            className="glass block px-4 py-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-white transition hover:border-white/20"
+            className="glass block px-4 py-3 text-[14px] font-medium text-white transition hover:border-white/20"
           >
             Part of a recurring group →
           </Link>
@@ -1308,7 +1170,7 @@ function GameActionButton({
         {canDeleteGame ? (
           <SecondaryButton fullWidth disabled={deleteBusy} onClick={onDeleteGame}>
             <span className="inline-flex items-center gap-1.5">
-              <Trash2 className="h-4 w-4" />
+              <Icon icon={Delete02Icon} size={16} />
               Delete game
             </span>
           </SecondaryButton>
@@ -1348,7 +1210,7 @@ function GameActionButton({
         {canDeleteGame ? (
           <SecondaryButton fullWidth disabled={deleteBusy} onClick={onDeleteGame}>
             <span className="inline-flex items-center gap-1.5">
-              <Trash2 className="h-4 w-4" />
+              <Icon icon={Delete02Icon} size={16} />
               Delete game
             </span>
           </SecondaryButton>
@@ -1398,6 +1260,66 @@ function GameActionButton({
   }
 
   return <StatusTransition phaseKey={phaseKey}>{button}</StatusTransition>
+}
+
+function GameStatusStrip({
+  isCancelled,
+  isDraft,
+  isHost,
+  isGameConfirmed,
+  isLive,
+  isCompleted,
+  status,
+}: {
+  isCancelled: boolean
+  isDraft: boolean
+  isHost: boolean
+  isGameConfirmed: boolean
+  isLive: boolean
+  isCompleted: boolean
+  status: GameDetail['status']
+}) {
+  let title = statusLabel(status)
+  let body: string | null = null
+  let tone = 'text-white/70'
+
+  if (isCancelled) {
+    title = 'Cancelled'
+    body = 'This game was cancelled.'
+    tone = 'text-status-danger'
+  } else if (isDraft) {
+    title = isHost ? 'Draft' : 'Not published yet'
+    body = isHost
+      ? 'Publish after the venue confirms this slot.'
+      : "The host hasn't opened this game yet."
+    tone = 'text-status-warning'
+  } else if (isLive) {
+    title = 'Live'
+    body = 'This game is in progress.'
+    tone = 'text-status-live'
+  } else if (isCompleted) {
+    title = 'Completed'
+    body = null
+    tone = 'text-white/55'
+  } else if (isGameConfirmed) {
+    title = 'Confirmed'
+    body = 'Minimum players reached. Roster is locked.'
+    tone = 'text-status-success'
+  } else if (status === 'in_progress') {
+    title = 'Live'
+    tone = 'text-status-live'
+  }
+
+  return (
+    <div className="flex items-start justify-between gap-3 border-y border-white/10 py-3">
+      <div>
+        <StatusBadge status={status} label={title} />
+        {body ? (
+          <p className={`mt-1 text-[13px] leading-relaxed ${tone}`}>{body}</p>
+        ) : null}
+      </div>
+    </div>
+  )
 }
 
 function TabBtn({

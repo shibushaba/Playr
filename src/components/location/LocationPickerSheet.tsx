@@ -1,6 +1,7 @@
 import { OverlaySheet } from '@/components/ui/OverlaySheet'
+import { Icon } from '@/components/ui/Icon'
 import { useLocationDiscovery } from '@/contexts/LocationContext'
-import { Search } from 'lucide-react'
+import { Search01Icon } from '@/icons/navigation'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -51,14 +52,14 @@ export function LocationPickerSheet() {
             <button
               type="button"
               onClick={() => setPickerOpen(false)}
-              className="shrink-0 pt-0.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45 transition hover:text-white"
+              className="shrink-0 pt-0.5 text-[13px] font-medium text-white/45 transition hover:text-white"
             >
               Close
             </button>
           </div>
           {areas.length > 0 ? (
             <label className="glass-input mt-4 flex min-h-11 items-center gap-2 !px-3">
-              <Search className="h-4 w-4 text-white/45" />
+              <Icon icon={Search01Icon} size={16} className="text-white/45" />
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}

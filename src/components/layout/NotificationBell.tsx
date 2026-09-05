@@ -1,8 +1,9 @@
-import { Bell } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Icon } from '@/components/ui/Icon'
+import { Notification03Icon } from '@/icons/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { countUnread } from '@/services/notifications'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 export function NotificationBell() {
   const { user } = useAuth()
@@ -61,7 +62,7 @@ export function NotificationBell() {
       className="glass motion-btn relative flex h-11 w-11 items-center justify-center text-white hover:border-white/20"
       aria-label={count > 0 ? `Notifications, ${count} unread` : 'Notifications'}
     >
-      <Bell className="h-4 w-4" strokeWidth={1.75} />
+      <Icon icon={Notification03Icon} size={18} />
       {count > 0 ? (
         <span
           className={

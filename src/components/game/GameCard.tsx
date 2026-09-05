@@ -1,6 +1,5 @@
 import { CardSemanticGlow, GameAvailability, ParticipantStatus } from '@/components/game/GameAvailability'
 import { StatusBadge } from '@/components/game/StatusBadge'
-import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   getOccupancy,
@@ -15,88 +14,6 @@ interface Props {
   className?: string
   featured?: boolean
   compact?: boolean
-}
-
-type CardAction = {
-  cta: string
-  to: string
-  variant: 'solid' | 'outline'
-  disabled?: boolean
-}
-
-function gameCardAction(game: GameListItem, userId?: string | null): CardAction {
-  const detailTo = `/games/${game.id}`
-
-  if (game.dbStatus === 'cancelled') {
-    return { cta: 'Cancelled', to: detailTo, variant: 'outline', disabled: true }
-  }
-
-  if (game.dbStatus === 'completed') {
-    return { cta: 'Completed', to: detailTo, variant: 'outline' }
-  }
-
-  if (game.dbStatus === 'live') {
-    return { cta: 'Live', to: detailTo, variant: 'outline' }
-  }
-
-  const isHost = Boolean(
-    userId &&
-      (game.hostId === userId ||
-        game.myParticipation?.role === 'host' ||
-        game.myParticipation?.role === 'co_host'),
-  )
-  const status = game.myParticipation?.status
-
-  if (isHost) {
-    return {
-      cta:
-        game.dbStatus === 'confirmed'
-          ? 'Hosting'
-          : "You're hosting",
-      to: detailTo,
-      variant: 'outline',
-    }
-  }
-
-  if (status === 'confirmed' || status === 'attended') {
-    return { cta: "You're in", to: detailTo, variant: 'outline' }
-  }
-
-  if (status === 'waitlisted') {
-    return { cta: 'On waitlist', to: detailTo, variant: 'outline' }
-  }
-
-  if (status === 'reserved') {
-    return { cta: 'Confirm spot', to: `/games/${game.id}/join`, variant: 'solid' }
-  }
-
-  if (game.dbStatus === 'confirmed') {
-    return { cta: 'View', to: detailTo, variant: 'outline' }
-  }
-
-  if (game.confirmedCount >= game.maxPlayers) {
-    return {
-      cta: 'Join waitlist',
-      to: `/games/${game.id}/join?mode=waitlist`,
-      variant: 'solid',
-    }
-  }
-
-  if (game.dbStatus === 'open') {
-    return { cta: 'Join game', to: `/games/${game.id}/join`, variant: 'solid' }
-  }
-
-  return { cta: 'View', to: detailTo, variant: 'outline' }
-}
-
-function showOccupancy(game: GameListItem): boolean {
-  return (
-    game.dbStatus === 'open' &&
-    game.status !== 'confirmed' &&
-    game.status !== 'cancelled' &&
-    game.status !== 'completed' &&
-    game.status !== 'in_progress'
-  )
 }
 
 function participantBanner(game: GameListItem, userId?: string | null) {
@@ -116,21 +33,32 @@ function participantBanner(game: GameListItem, userId?: string | null) {
   return null
 }
 
-export function GameCard({ game, className, featured, compact }: Props) {
-  const { user } = useAuth()
-  const { cta, to: joinTo, variant, disabled } = gameCardAction(game, user?.id)
-  const occupancy = getOccupancy(game.confirmedCount, game.maxPlayers)
-  const banner = participantBanner(game, user?.id)
-  const useOccupancy = showOccupancy(game)
+function showOccupancy(game: GameListItem): boolean {
+  return (
+    game.dbStatus === 'open' &&
+    game.status !== 'confirmed' &&
+    game.status !== 'cancelled' &&
+    game.status !== 'completed' &&
+    game.status !== 'in_progress'
+  )
+}
 
-  const distance =
+function gameDistance(game: GameListItem): string | null {
+  return (
     game.distanceLabel ||
     (game.venue?.distanceLabel ??
       (game.venue?.distanceKm != null
         ? `${game.venue.distanceKm.toFixed(1)} km`
         : null))
+  )
+}
 
-  const ctaLabel = `${cta} →`
+export function GameCard({ game, className, featured, compact = true }: Props) {
+  const { user } = useAuth()
+  const occupancy = getOccupancy(game.confirmedCount, game.maxPlayers)
+  const banner = participantBanner(game, user?.id)
+  const useOccupancy = showOccupancy(game)
+  const distance = gameDistance(game)
   const glowState = glowStateForGame(game, useOccupancy, occupancy)
   const participantGlow =
     banner?.tone === 'success'
@@ -139,177 +67,84 @@ export function GameCard({ game, className, featured, compact }: Props) {
         ? 'filling'
         : null
   const cardGlow = glowState ?? participantGlow
+  const meta = (
+    banner ? (
+      <ParticipantStatus label={banner.label} tone={banner.tone} />
+    ) : useOccupancy ? (
+      <GameAvailability
+        currentPlayers={game.confirmedCount}
+        maximumPlayers={game.maxPlayers}
+        compact
+        layout="inline"
+        showProgress={false}
+      />
+    ) : (
+      <StatusBadge
+        status={game.status}
+        label={game.status === 'in_progress' ? 'Live' : undefined}
+      />
+    )
+  )
 
   if (featured) {
-    return (
-      <article
-        className={cn(
-          'glass-elevated motion-card relative overflow-hidden',
-          className,
-        )}
-      >
-        {cardGlow ? <CardSemanticGlow state={cardGlow} /> : null}
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
-          aria-hidden
-        />
-        <Link to={`/games/${game.id}`} className="relative z-[1] block px-5 pt-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-[family-name:var(--font-display)] text-[36px] font-semibold leading-none tracking-tight tabular-nums text-white">
-                {formatTime(game.startsAt)}
-              </p>
-              <p className="mt-2 text-[12px] uppercase tracking-[0.1em] text-white/45">
-                {formatDay(game.startsAt)}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="label-caps text-white/70">{game.sport.name}</p>
-              <div className="mt-2">
-                <StatusBadge
-                  status={game.status}
-                  label={game.status === 'in_progress' ? 'Live' : undefined}
-                />
-              </div>
-            </div>
-          </div>
-
-          <h3 className="mt-8 font-[family-name:var(--font-display)] text-[22px] font-semibold leading-tight tracking-tight text-white">
-            {game.venue?.name ?? 'Venue TBD'}
-          </h3>
-          <p className="mt-2 text-[13px] text-white/45">
-            {[game.venue?.city, distance].filter(Boolean).join(' · ')}
-          </p>
-
-          <div className="mt-6 border-t border-white/10 pt-5">
-            {banner ? (
-              <ParticipantStatus label={banner.label} tone={banner.tone} />
-            ) : useOccupancy ? (
-              <GameAvailability
-                currentPlayers={game.confirmedCount}
-                maximumPlayers={game.maxPlayers}
-              />
-            ) : (
-              <StatusBadge status={game.status} />
-            )}
-          </div>
-        </Link>
-
-        <div className="relative z-[1] p-4 pt-3">
-          {disabled ? (
-            <PrimaryButton fullWidth disabled variant={variant}>
-              {ctaLabel}
-            </PrimaryButton>
-          ) : (
-            <Link to={joinTo} className="block">
-              <PrimaryButton fullWidth variant={variant}>
-                {ctaLabel}
-              </PrimaryButton>
-            </Link>
-          )}
-        </div>
-      </article>
-    )
-  }
-
-  if (compact) {
     return (
       <Link
         to={`/games/${game.id}`}
         className={cn(
-          'glass motion-card relative block overflow-hidden px-4 py-4 hover:border-white/20',
+          'glass-elevated motion-card relative block overflow-hidden p-5',
           className,
         )}
       >
         {cardGlow ? <CardSemanticGlow state={cardGlow} /> : null}
-        <div className="relative z-[1]">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="font-[family-name:var(--font-display)] text-[20px] font-semibold tabular-nums text-white">
-            {formatTime(game.startsAt)}
-          </p>
-          <p className="label-caps">{game.sport.name}</p>
-        </div>
-        <p className="mt-3 text-[14px] font-medium text-white">
-          {game.venue?.name ?? 'Venue TBD'}
-        </p>
-        <p className="mt-1 text-[12px] text-white/40">
-          {[distance].filter(Boolean).join(' · ')}
-        </p>
-        <div className="mt-3">
-          {banner ? (
-            <ParticipantStatus label={banner.label} tone={banner.tone} />
-          ) : useOccupancy ? (
-            <GameAvailability
-              currentPlayers={game.confirmedCount}
-              maximumPlayers={game.maxPlayers}
-              compact
-              showProgress
-            />
-          ) : (
-            <StatusBadge status={game.status} />
-          )}
-        </div>
+        <div className="relative z-[1] flex gap-4">
+          <div className="flex h-[4.5rem] w-[4.5rem] shrink-0 flex-col items-center justify-center rounded-[8px] bg-white/[0.08]">
+            <p className="font-[family-name:var(--font-display)] text-[20px] font-semibold tabular-nums leading-none text-white">
+              {formatTime(game.startsAt)}
+            </p>
+            <p className="mt-1 text-[11px] text-white/45">{formatDay(game.startsAt)}</p>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="label-caps">{game.sport.name}</p>
+            <h3 className="mt-1 font-[family-name:var(--font-display)] text-[18px] font-semibold leading-tight tracking-tight text-white">
+              {game.venue?.name ?? 'Venue TBD'}
+            </h3>
+            <p className="mt-1 text-[13px] text-white/45">
+              {[game.venue?.city, distance].filter(Boolean).join(' · ')}
+            </p>
+            <div className="mt-3">{meta}</div>
+          </div>
         </div>
       </Link>
     )
   }
 
   return (
-    <article
+    <Link
+      to={`/games/${game.id}`}
       className={cn(
-        'glass motion-card relative overflow-hidden hover:border-white/18',
+        'glass motion-card relative block overflow-hidden hover:border-white/20',
+        compact ? 'list-row' : 'px-4 py-4',
         className,
       )}
     >
       {cardGlow ? <CardSemanticGlow state={cardGlow} /> : null}
-      <Link to={`/games/${game.id}`} className="relative z-[1] block px-4 pt-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="font-[family-name:var(--font-display)] text-[28px] font-semibold tracking-tight text-white tabular-nums">
+      <div className="relative z-[1] flex min-w-0 flex-1 items-center gap-3">
+        <div className="w-14 shrink-0">
+          <p className="font-[family-name:var(--font-display)] text-[16px] font-semibold tabular-nums text-white">
             {formatTime(game.startsAt)}
           </p>
-          <p className="label-caps text-white/70">{game.sport.name}</p>
+          <p className="mt-0.5 text-[11px] text-white/40">{formatDay(game.startsAt)}</p>
         </div>
-        <p className="mt-1 text-[12px] text-white/40">{formatDay(game.startsAt)}</p>
-
-        <div className="mt-5">
-          <p className="font-[family-name:var(--font-display)] text-[16px] font-semibold text-white">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14px] font-medium text-white">
             {game.venue?.name ?? 'Venue TBD'}
           </p>
-          <p className="mt-1 text-[13px] text-white/45">
-            {[game.venue?.city, distance].filter(Boolean).join(' · ')}
+          <p className="mt-0.5 truncate text-[12px] text-white/40">
+            {[game.sport.name, distance].filter(Boolean).join(' · ')}
           </p>
+          <div className="mt-1.5">{meta}</div>
         </div>
-
-        <div className="mt-5 border-t border-white/10 pt-4 pb-1">
-          {banner ? (
-            <ParticipantStatus label={banner.label} tone={banner.tone} />
-          ) : useOccupancy ? (
-            <GameAvailability
-              currentPlayers={game.confirmedCount}
-              maximumPlayers={game.maxPlayers}
-              compact
-            />
-          ) : (
-            <div className="flex items-end justify-between gap-3">
-              <StatusBadge status={game.status} />
-            </div>
-          )}
-        </div>
-      </Link>
-
-      <div className="relative z-[1] border-t border-white/10 p-3">
-        {disabled ? (
-          <PrimaryButton fullWidth disabled variant={variant}>
-            {ctaLabel}
-          </PrimaryButton>
-        ) : (
-          <Link to={joinTo} className="block">
-            <PrimaryButton fullWidth variant={variant}>
-              {ctaLabel}
-            </PrimaryButton>
-          </Link>
-        )}
       </div>
-    </article>
+    </Link>
   )
 }

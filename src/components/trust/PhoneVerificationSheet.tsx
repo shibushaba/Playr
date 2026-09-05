@@ -8,7 +8,8 @@ import {
   confirmPhoneVerification,
   requestPhoneVerification,
 } from '@/services/verification'
-import { Check } from 'lucide-react'
+import { Tick02Icon } from '@/icons/actions'
+import { Icon } from '@/components/ui/Icon'
 import { useEffect, useState } from 'react'
 
 interface Props {
@@ -172,7 +173,7 @@ export function PhoneVerificationSheet({
           {step === 'done' ? (
             <>
               <div className="flex items-center justify-center gap-2 text-status-success">
-                <Check className="h-5 w-5" />
+                <Icon icon={Tick02Icon} size={20} />
                 <span className="text-[15px] font-semibold">Phone verified</span>
               </div>
               <PrimaryButton fullWidth onClick={onClose}>

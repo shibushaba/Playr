@@ -36,7 +36,7 @@ export function MotionTab({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'motion-tab flex-1 rounded-[6px] py-2.5 text-[12px] font-semibold uppercase tracking-[0.08em]',
+        'motion-tab flex-1 rounded-[6px] py-2.5 text-[13px] font-semibold',
         active ? 'motion-tab--active bg-white text-cta' : 'text-white/45 hover:text-white/70',
         disabled && 'cursor-not-allowed opacity-40',
         className,

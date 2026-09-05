@@ -1,26 +1,33 @@
 import { FadeIn } from '@/components/motion/FadeIn'
-import { MotionTextLink } from '@/components/motion/MotionLink'
 import { PageContent } from '@/components/motion/PageContent'
-import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { GameRowSkeleton, PlayFeedSkeleton } from '@/components/motion/Skeleton'
+import { MotionTab, MotionTabBar } from '@/components/motion/MotionTab'
 import { FilterSheet, type FilterState } from '@/components/filters/FilterSheet'
 import { GameCard } from '@/components/game/GameCard'
+import { GroupCard } from '@/components/group/GroupCard'
 import { NotificationBell } from '@/components/layout/NotificationBell'
 import { LocationPickerSheet } from '@/components/location/LocationPickerSheet'
 import { SportChip } from '@/components/sport/SportChip'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Icon } from '@/components/ui/Icon'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
+import { SearchBar } from '@/components/ui/SearchBar'
 import { VenueCard } from '@/components/venue/VenueCard'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLocationDiscovery } from '@/contexts/LocationContext'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { ChevronDownIcon, FilterIcon, Search01Icon } from '@/icons/navigation'
 import { toUserMessage } from '@/lib/errors'
 import { DEFAULT_RADIUS_METERS } from '@/lib/location'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { getNearbyGames, getNearbyVenues } from '@/services/discovery'
+import { listGroups } from '@/services/groups'
 import { listSports } from '@/services/sports'
-import type { GameListItem, SportRecord, VenueRecord } from '@/types/domain'
-import { ChevronDown, Search } from 'lucide-react'
+import type { GameListItem, GroupListItem, SportRecord, VenueRecord } from '@/types/domain'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+
+type SearchTab = 'games' | 'venues' | 'groups'
 
 function dateRangeFromFilter(filters: FilterState): {
   gameDate?: string
@@ -52,14 +59,14 @@ function dateRangeFromFilter(filters: FilterState): {
 
 function greeting(): string {
   const h = new Date().getHours()
-  if (h < 12) return 'Good morning.'
-  if (h < 17) return 'Good afternoon.'
-  return 'Good evening.'
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
 }
 
 export function HomePage() {
   const { profile, user } = useAuth()
-  const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
   const {
     location,
     permission,
@@ -67,6 +74,10 @@ export function HomePage() {
     setRadiusMeters,
     setPickerOpen,
   } = useLocationDiscovery()
+  const searchOpen = params.get('search') === '1' || params.has('q')
+  const query = params.get('q') ?? ''
+  const debouncedQuery = useDebouncedValue(query, 300)
+  const [searchTab, setSearchTab] = useState<SearchTab>('games')
   const [sportId, setSportId] = useState<string | 'all'>('all')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [filters, setFilters] = useState<FilterState>({
@@ -80,6 +91,7 @@ export function HomePage() {
   const [sports, setSports] = useState<SportRecord[]>([])
   const [games, setGames] = useState<GameListItem[]>([])
   const [venues, setVenues] = useState<VenueRecord[]>([])
+  const [groups, setGroups] = useState<GroupListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [limit, setLimit] = useState(20)
@@ -111,22 +123,30 @@ export function HomePage() {
       setError(null)
       try {
         const dates = dateRangeFromFilter(filters)
-        const [gamesData, venuesData] = await Promise.all([
+        const search = searchOpen ? debouncedQuery.trim() || null : null
+        const [gamesData, venuesData, groupsData] = await Promise.all([
           getNearbyGames({
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
             radiusMeters: effectiveRadius,
             sportId: activeSport === 'all' ? null : activeSport,
             timeBucket: filters.timeBucket === 'any' ? null : filters.timeBucket,
+            search,
             limit,
             ...dates,
           }),
-          getNearbyVenues({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            radiusMeters: effectiveRadius,
-            limit: 6,
-          }),
+          searchOpen
+            ? getNearbyVenues({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                radiusMeters: effectiveRadius,
+                search,
+                limit: 20,
+              })
+            : Promise.resolve([] as VenueRecord[]),
+          searchOpen
+            ? listGroups().catch(() => [] as GroupListItem[])
+            : Promise.resolve([] as GroupListItem[]),
         ])
         if (cancelled) return
         let list = gamesData
@@ -135,6 +155,16 @@ export function HomePage() {
         }
         setGames(list)
         setVenues(venuesData)
+        const q = (search ?? '').toLowerCase()
+        setGroups(
+          q
+            ? groupsData.filter(
+                (item) =>
+                  item.name.toLowerCase().includes(q) ||
+                  (item.sport?.name?.toLowerCase().includes(q) ?? false),
+              )
+            : groupsData,
+        )
       } catch (e) {
         if (!cancelled) setError(toUserMessage(e, "Couldn't find nearby games."))
       } finally {
@@ -155,6 +185,8 @@ export function HomePage() {
     filters.timeBucket,
     filters.status,
     limit,
+    searchOpen,
+    debouncedQuery,
   ])
 
   const greetName =
@@ -169,10 +201,35 @@ export function HomePage() {
     return 'Choose area'
   }, [location, permission])
 
-  const isGps = location?.source === 'gps'
+  function openSearch() {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('search', '1')
+      return next
+    }, { replace: true })
+  }
 
-  const featuredGame = games[0] ?? null
-  const moreGames = games.slice(1)
+  function closeSearch() {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('search')
+      next.delete('q')
+      return next
+    }, { replace: true })
+  }
+
+  function setQuery(value: string) {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('search', '1')
+      if (value) next.set('q', value)
+      else next.delete('q')
+      return next
+    }, { replace: true })
+  }
+
+  const featuredGame = !searchOpen ? (games[0] ?? null) : null
+  const moreGames = !searchOpen ? games.slice(1) : games
 
   return (
     <div className="pb-8">
@@ -185,25 +242,28 @@ export function HomePage() {
             aria-label={`Change location, currently ${locationLabel}`}
             className="min-h-11 flex-1 text-left"
           >
-            <p className="label-caps">
+            <p className="text-[13px] text-white/45">
               {greeting()}
-              {greetName ? ` ${greetName}` : ''}
+              {greetName ? `, ${greetName}` : ''}
             </p>
             <span className="group mt-1 inline-flex items-center gap-1.5 text-[16px] font-semibold tracking-tight text-white transition hover:text-white/80">
               {locationLabel}
-              <ChevronDown className="motion-icon-chevron h-4 w-4 text-white/50" />
+              <Icon icon={ChevronDownIcon} size={16} className="motion-icon-chevron text-white/50" />
             </span>
-            {isGps ? (
-              <span className="mt-0.5 block text-[11px] text-white/40">
-                Using your location
-              </span>
-            ) : location?.source === 'manual' ? (
-              <span className="mt-0.5 block text-[11px] text-white/40">
-                Manual area
-              </span>
-            ) : null}
           </button>
-          <NotificationBell />
+          <div className="flex items-center gap-2">
+            {!searchOpen ? (
+              <button
+                type="button"
+                onClick={openSearch}
+                aria-label="Search"
+                className="glass motion-btn flex h-11 w-11 items-center justify-center text-white hover:border-white/20"
+              >
+                <Icon icon={Search01Icon} size={18} />
+              </button>
+            ) : null}
+            <NotificationBell />
+          </div>
         </div>
 
         {(permission === 'denied' || permission === 'unavailable') && !location ? (
@@ -218,128 +278,223 @@ export function HomePage() {
           </div>
         ) : null}
 
-        <Link
-          to="/explore"
-          className="glass motion-glass mt-4 flex min-h-12 items-center gap-3 px-4 text-left transition hover:border-white/20"
-        >
-          <Search className="h-4 w-4 shrink-0 text-white/40" strokeWidth={1.75} aria-hidden />
-          <span className="text-[15px] text-white/35">Search games, venues, sports…</span>
-        </Link>
+        {searchOpen ? (
+          <div className="mt-4 flex items-center gap-2">
+            <SearchBar
+              className="flex-1"
+              value={query}
+              onChange={setQuery}
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={closeSearch}
+              className="text-[13px] font-medium text-white/55 hover:text-white"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : null}
         </FadeIn>
       </header>
 
       <PageContent>
-      <FadeIn delay={50}>
-      <section className="page-pad mt-6">
-        <div className="chip-scroll-row chip-scroll-row--bleed flex gap-2 scrollbar-none">
-          <SportChip
-            sport={{ id: 'all', name: 'All', slug: 'all', label: 'All' }}
-            selected={activeSport === 'all'}
-            tile
-            onClick={() => {
-              setSportId('all')
-              setFilters((f) => ({ ...f, sport: 'all' }))
-            }}
-          />
-          {sports.map((s) => (
-            <SportChip
-              key={s.id}
-              sport={s}
-              selected={activeSport === s.id}
-              tile
-              onClick={() => {
-                setSportId(s.id)
-                setFilters((f) => ({ ...f, sport: s.id }))
-              }}
-            />
-          ))}
-        </div>
-      </section>
-      </FadeIn>
+      {searchOpen ? (
+        <div className="page-pad mt-5">
+          <MotionTabBar>
+            {(
+              [
+                ['games', 'Games'],
+                ['venues', 'Venues'],
+                ['groups', 'Clubs'],
+              ] as const
+            ).map(([id, label]) => (
+              <MotionTab
+                key={id}
+                active={searchTab === id}
+                onClick={() => setSearchTab(id)}
+              >
+                {label}
+              </MotionTab>
+            ))}
+          </MotionTabBar>
 
-      <FadeIn delay={80}>
-      <section className="page-pad mt-10">
-        <div className="mb-5 flex items-end justify-between gap-3">
-          <div>
-            <h2 className="section-label">Nearby</h2>
-            <p className="mt-1 text-[13px] text-white/45">
-              {loading ? 'Loading…' : 'Tonight and upcoming'}
-            </p>
+          {searchTab !== 'groups' ? (
+            <div className="chip-scroll-row chip-scroll-row--bleed mt-4 flex gap-2 scrollbar-none">
+              <SportChip
+                sport={{ id: 'all', name: 'All', slug: 'all', label: 'All' }}
+                selected={activeSport === 'all'}
+                onClick={() => {
+                  setSportId('all')
+                  setFilters((f) => ({ ...f, sport: 'all' }))
+                }}
+              />
+              {sports.map((s) => (
+                <SportChip
+                  key={s.id}
+                  sport={s}
+                  selected={activeSport === s.id}
+                  onClick={() => {
+                    setSportId(s.id)
+                    setFilters((f) => ({ ...f, sport: s.id }))
+                  }}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          <div className="mt-5 space-y-2">
+            {error ? (
+              <EmptyState title="Something went wrong." description={error} />
+            ) : loading ? (
+              <div className="space-y-2">
+                <GameRowSkeleton />
+                <GameRowSkeleton />
+                <GameRowSkeleton />
+              </div>
+            ) : searchTab === 'games' ? (
+              games.length ? (
+                games.map((game) => <GameCard key={game.id} game={game} />)
+              ) : (
+                <EmptyState
+                  title="No games match"
+                  description="Try another sport or area, or host one yourself."
+                  preview={<GameRowSkeleton />}
+                  action={
+                    <Link to="/host">
+                      <PrimaryButton>Host a game</PrimaryButton>
+                    </Link>
+                  }
+                />
+              )
+            ) : searchTab === 'venues' ? (
+              venues.length ? (
+                venues.map((v) => (
+                  <VenueCard key={v.id} venue={v} to={`/venues/${v.id}`} />
+                ))
+              ) : (
+                <EmptyState
+                  title="No venues nearby"
+                  description="Submit a venue or widen your area."
+                  action={
+                    <Link to="/venues/new">
+                      <PrimaryButton>Submit a venue</PrimaryButton>
+                    </Link>
+                  }
+                />
+              )
+            ) : groups.length ? (
+              groups.map((g) => <GroupCard key={g.id} group={g} />)
+            ) : (
+              <EmptyState
+                title="No clubs yet"
+                description="Create a recurring club to play on a schedule."
+                action={
+                  <Link to="/groups/new">
+                    <PrimaryButton>Create a club</PrimaryButton>
+                  </Link>
+                }
+              />
+            )}
           </div>
-          <MotionTextLink onClick={() => setFiltersOpen(true)}>Filter</MotionTextLink>
         </div>
+      ) : (
+        <>
+          <FadeIn delay={50}>
+          <section className="page-pad mt-5">
+            <div className="chip-scroll-row chip-scroll-row--bleed flex gap-2 scrollbar-none">
+              <SportChip
+                sport={{ id: 'all', name: 'All', slug: 'all', label: 'All' }}
+                selected={activeSport === 'all'}
+                tile
+                onClick={() => {
+                  setSportId('all')
+                  setFilters((f) => ({ ...f, sport: 'all' }))
+                }}
+              />
+              {sports.map((s) => (
+                <SportChip
+                  key={s.id}
+                  sport={s}
+                  selected={activeSport === s.id}
+                  tile
+                  onClick={() => {
+                    setSportId(s.id)
+                    setFilters((f) => ({ ...f, sport: s.id }))
+                  }}
+                />
+              ))}
+            </div>
+          </section>
+          </FadeIn>
 
-        {error ? (
-          <EmptyState
-            title="Something went wrong."
-            description={error}
-            action={
-              <PrimaryButton onClick={() => setLimit((n) => n)}>
-                Retry
-              </PrimaryButton>
-            }
-          />
-        ) : loading ? (
-          <LoadingBlock className="min-h-48" />
-        ) : games.length === 0 ? (
-          <EmptyState
-            title="No games near you"
-            description="No pickup games in this area right now. Search farther out, or host when you have a venue."
-            action={
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Link to="/explore">
-                  <PrimaryButton>Search nearby</PrimaryButton>
-                </Link>
-                <Link to="/host">
-                  <PrimaryButton variant="outline">Host instead</PrimaryButton>
-                </Link>
-              </div>
-            }
-          />
-        ) : (
-          <>
-            {featuredGame ? (
-              <GameCard game={featuredGame} featured />
-            ) : null}
-
-            {moreGames.length > 0 ? (
-              <div className="mt-8">
-                <h2 className="section-label mb-4">More games</h2>
-                <div className="space-y-2">
-                  {moreGames.map((game) => (
-                    <GameCard key={game.id} game={game} compact />
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {games.length >= limit ? (
+          <FadeIn delay={80}>
+          <section className="page-pad mt-8">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <h2 className="section-title">Nearby</h2>
               <button
                 type="button"
-                className="glass mt-4 min-h-11 w-full text-[12px] font-semibold uppercase tracking-[0.08em] text-white transition hover:border-white/20"
-                onClick={() => setLimit((n) => n + 20)}
+                onClick={() => setFiltersOpen(true)}
+                className="motion-link inline-flex items-center gap-1.5 text-[13px] font-medium text-white/55"
               >
-                Show more
+                <Icon icon={FilterIcon} size={14} />
+                Filter
               </button>
-            ) : null}
-          </>
-        )}
-      </section>
-      </FadeIn>
+            </div>
 
-      <FadeIn delay={110}>
-      <section className="page-pad mt-12">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="section-label">Nearby venues</h2>
-          <MotionTextLink onClick={() => navigate('/explore')}>View all</MotionTextLink>
-        </div>
-        <div className="space-y-2">
-          {venues.slice(0, 3).map((v) => (
-            <VenueCard key={v.id} venue={v} to={`/venues/${v.id}`} />
-          ))}
-        </div>
-      </section>
-      </FadeIn>
+            {error ? (
+              <EmptyState
+                title="Something went wrong."
+                description={error}
+                action={
+                  <PrimaryButton onClick={() => setLimit((n) => n)}>
+                    Retry
+                  </PrimaryButton>
+                }
+              />
+            ) : loading ? (
+              <PlayFeedSkeleton />
+            ) : games.length === 0 ? (
+              <EmptyState
+                title="No games near you"
+                description="Widen the area, or host when you have a venue."
+                preview={<GameRowSkeleton />}
+                action={
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <PrimaryButton onClick={() => setPickerOpen(true)}>
+                      Widen area
+                    </PrimaryButton>
+                    <Link to="/host">
+                      <PrimaryButton variant="outline">Host instead</PrimaryButton>
+                    </Link>
+                  </div>
+                }
+              />
+            ) : (
+              <>
+                {featuredGame ? <GameCard game={featuredGame} featured /> : null}
+                {moreGames.length > 0 ? (
+                  <div className="mt-4 space-y-2">
+                    {moreGames.map((game) => (
+                      <GameCard key={game.id} game={game} />
+                    ))}
+                  </div>
+                ) : null}
+                {games.length >= limit ? (
+                  <button
+                    type="button"
+                    className="glass mt-4 min-h-11 w-full text-[13px] font-medium text-white transition hover:border-white/20"
+                    onClick={() => setLimit((n) => n + 20)}
+                  >
+                    Show more
+                  </button>
+                ) : null}
+              </>
+            )}
+          </section>
+          </FadeIn>
+        </>
+      )}
       </PageContent>
 
       <FilterSheet
@@ -352,6 +507,7 @@ export function HomePage() {
           setRadiusMeters(next.radiusMeters)
         }}
         sports={sports}
+        resultCount={loading ? null : games.length}
       />
       <LocationPickerSheet />
     </div>

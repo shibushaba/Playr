@@ -335,40 +335,22 @@ export function HostPage() {
     <div className="pb-10">
       <Header
         title="Host a game"
-        subtitle={`${String(STEPS[step - 1].n).padStart(2, '0')} ${STEPS[step - 1].label.toUpperCase()} · ${step} of ${STEPS.length}`}
+        subtitle={STEPS[step - 1].label}
         onBack={step > 1 ? () => setStep((s) => s - 1) : undefined}
       />
 
       <div className="page-pad py-6">
-        <nav className="mb-8 flex gap-1" aria-label="Steps">
-          {STEPS.map((s) => {
-            const n = s.n
-            const active = n === step
-            const done = n < step
-            return (
-              <div key={s.label} className="flex-1">
-                <div
-                  className={
-                    active
-                      ? 'h-0.5 bg-white'
-                      : done
-                        ? 'h-0.5 bg-white/60'
-                        : 'h-0.5 bg-white/10'
-                  }
-                />
-                <p
-                  className={
-                    active
-                      ? 'mt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-white'
-                      : 'mt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/45'
-                  }
-                >
-                  {String(s.n).padStart(2, '0')} {s.label}
-                </p>
-              </div>
-            )
-          })}
-        </nav>
+        <div className="mb-8">
+          <p className="text-center text-[13px] text-white/45">
+            Step {step} of {STEPS.length}
+          </p>
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full bg-white transition-[width] duration-[var(--motion-normal)]"
+              style={{ width: `${(step / STEPS.length) * 100}%` }}
+            />
+          </div>
+        </div>
 
         {error ? (
           <p className="glass motion-error-in mb-4 px-3 py-2 text-[13px] text-white">
@@ -387,7 +369,7 @@ export function HostPage() {
               </p>
             </div>
             <div>
-              <p className="label-caps mb-3">Sport</p>
+              <p className="field-label">Sport</p>
               <div className="flex flex-wrap gap-2">
                 {sports.map((s) => (
                   <SportChip
@@ -429,7 +411,7 @@ export function HostPage() {
 
             {selectedVenue ? (
               <div className="glass-elevated p-4">
-                <p className="label-caps">Venue</p>
+                <p className="field-label">Venue</p>
                 <p className="mt-2 text-[18px] font-semibold tracking-tight text-white">
                   {selectedVenue.name}
                 </p>
@@ -442,12 +424,12 @@ export function HostPage() {
                     .filter(Boolean)
                     .join(' · ')}
                 </p>
-                <p className="mt-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-white/70">
-                  Selected ✓ — selecting does not book the venue
+                <p className="mt-3 text-[13px] text-white/55">
+                  Selected — picking a venue does not book it
                 </p>
                 {venuePhone ? (
                   <div className="mt-4 border-t border-white/10 pt-4">
-                    <p className="label-caps">Phone</p>
+                    <p className="field-label">Phone</p>
                     <p className="mt-1 text-[14px] text-white">
                       {formatPhoneDisplay(venuePhone)}
                     </p>
@@ -565,7 +547,7 @@ export function HostPage() {
               </p>
             </Field>
             <div>
-              <p className="label-caps mb-3">Visibility</p>
+              <p className="field-label mb-3">Visibility</p>
               <div className="grid grid-cols-3 gap-2">
                 {(['public', 'private', 'invite_only'] as const).map((v) => (
                   <button
@@ -574,11 +556,11 @@ export function HostPage() {
                     onClick={() => setVisibility(v)}
                     className={
                       visibility === v
-                        ? 'min-h-11 rounded-[8px] border border-white/30 bg-white text-[12px] font-semibold uppercase tracking-[0.06em] text-cta'
-                        : 'glass min-h-11 text-[12px] font-semibold uppercase tracking-[0.06em] text-white/70 transition hover:border-white/20'
+                        ? 'min-h-11 rounded-[8px] border border-white/30 bg-white text-[13px] font-semibold text-cta'
+                        : 'glass min-h-11 text-[13px] font-medium text-white/70 transition hover:border-white/20'
                     }
                   >
-                    {v === 'invite_only' ? 'Invite' : v}
+                    {v === 'invite_only' ? 'Invite' : v === 'public' ? 'Public' : 'Private'}
                   </button>
                 ))}
               </div>
@@ -596,6 +578,29 @@ export function HostPage() {
               <p className="mt-1 text-[14px] text-white/45">
                 Confirm venue booking and publish when ready.
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <ReviewLine
+                label="Sport"
+                value={sports.find((s) => s.id === sportId)?.name ?? '—'}
+                onEdit={() => setStep(1)}
+              />
+              <ReviewLine
+                label="Venue"
+                value={selectedVenue?.name ?? '—'}
+                onEdit={() => setStep(2)}
+              />
+              <ReviewLine
+                label="When"
+                value={`${gameDate} · ${startTime}`}
+                onEdit={() => setStep(3)}
+              />
+              <ReviewLine
+                label="Players"
+                value={`${minPlayers}–${maxPlayers}`}
+                onEdit={() => setStep(4)}
+              />
             </div>
 
             {!hostReady ? (
@@ -653,14 +658,37 @@ export function HostPage() {
               }
               onClick={() => void publish()}
             >
-              {busy ? 'Publishing…' : 'Publish game →'}
+              {busy ? 'Publishing…' : 'Publish game'}
             </PrimaryButton>
-            <SecondaryButton fullWidth onClick={() => navigate('/groups/new')}>
-              Or create a recurring group
-            </SecondaryButton>
           </div>
         ) : null}
       </div>
+    </div>
+  )
+}
+
+function ReviewLine({
+  label,
+  value,
+  onEdit,
+}: {
+  label: string
+  value: string
+  onEdit: () => void
+}) {
+  return (
+    <div className="glass flex items-center justify-between gap-3 px-4 py-3">
+      <div className="min-w-0">
+        <p className="text-[12px] text-white/45">{label}</p>
+        <p className="mt-0.5 truncate text-[14px] font-medium text-white">{value}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="shrink-0 text-[13px] font-medium text-white/55 hover:text-white"
+      >
+        Edit
+      </button>
     </div>
   )
 }
@@ -674,7 +702,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="label-caps mb-2 block">{label}</span>
+      <span className="field-label">{label}</span>
       {children}
     </label>
   )

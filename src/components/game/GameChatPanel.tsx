@@ -11,7 +11,8 @@ import {
   type GameMessage,
   type RealtimeHealth,
 } from '@/services/chat'
-import { Flag } from 'lucide-react'
+import { Flag01Icon } from '@/icons/actions'
+import { Icon } from '@/components/ui/Icon'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface Props {
@@ -145,7 +146,7 @@ export function GameChatPanel({
   return (
     <div className="glass flex min-h-[280px] flex-col">
       <div className="border-b border-white/10 px-4 py-3">
-        <p className="label-caps">Chat</p>
+        <p className="text-[13px] font-medium text-white/55">Chat</p>
       </div>
 
       <div className="max-h-72 flex-1 space-y-3 overflow-y-auto p-4">
@@ -178,7 +179,7 @@ export function GameChatPanel({
                       aria-label="Report message"
                       onClick={() => onReportMessage(m.id, m.senderId)}
                     >
-                      <Flag className="h-3 w-3" />
+                      <Icon icon={Flag01Icon} size={12} />
                     </button>
                   ) : null}
                 </div>

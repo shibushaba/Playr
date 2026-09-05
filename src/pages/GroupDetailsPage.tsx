@@ -1,4 +1,6 @@
-import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { Copy01Icon } from '@/icons/actions'
+import { Icon } from '@/components/ui/Icon'
+import { DetailHeroSkeleton } from '@/components/motion/Skeleton'
 import { GameCard } from '@/components/game/GameCard'
 import { GameAvailability } from '@/components/game/GameAvailability'
 import { Header } from '@/components/layout/Header'
@@ -29,7 +31,6 @@ import type {
   GroupMember,
   PublicProfile,
 } from '@/types/domain'
-import { Copy } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
@@ -109,7 +110,7 @@ export function GroupDetailsPage() {
       <div>
         <Header title="Group" backTo="/groups" />
         <div className="page-pad py-8">
-          <LoadingBlock />
+          <DetailHeroSkeleton />
         </div>
       </div>
     )
@@ -434,7 +435,7 @@ export function GroupDetailsPage() {
             <p className="break-all text-[12px] text-muted">{inviteLink}</p>
             <SecondaryButton fullWidth onClick={() => void copyInvite()}>
               <span className="inline-flex items-center gap-2">
-                <Copy className="h-4 w-4" />
+                <Icon icon={Copy01Icon} size={16} />
                 {copied ? 'Copied' : 'Copy link'}
               </span>
             </SecondaryButton>

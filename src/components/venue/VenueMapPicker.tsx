@@ -1,4 +1,6 @@
-import { Link2, Search } from 'lucide-react'
+import { Icon } from '@/components/ui/Icon'
+import { Link01Icon } from '@/icons/actions'
+import { Search01Icon } from '@/icons/navigation'
 import { useMemo, useState } from 'react'
 import {
   areaNameFromLabel,
@@ -111,7 +113,7 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
 
       <div className="flex gap-2">
         <label className="glass-input flex min-h-12 flex-1 items-center gap-2 !px-3">
-          <Search className="h-4 w-4 shrink-0 text-white/45" />
+          <Icon icon={Search01Icon} size={16} className="shrink-0 text-white/45" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -207,7 +209,7 @@ export function VenueMapPicker({ onConfirm, confirmed }: Props) {
         {showPasteLink ? (
           <div className="space-y-3">
             <label className="glass-input flex min-h-12 items-center gap-2 !px-3">
-              <Link2 className="h-4 w-4 shrink-0 text-white/45" />
+              <Icon icon={Link01Icon} size={16} className="shrink-0 text-white/45" />
               <input
                 value={mapLink}
                 onChange={(e) => setMapLink(e.target.value)}

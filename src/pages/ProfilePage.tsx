@@ -1,5 +1,5 @@
 import { FeedbackSheet } from '@/components/settings/FeedbackSheet'
-import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { ListPageSkeleton } from '@/components/motion/Skeleton'
 import { MotionNavRow } from '@/components/motion/MotionLink'
 import { StatusTransition } from '@/components/motion/StatusTransition'
 import { Header } from '@/components/layout/Header'
@@ -20,7 +20,8 @@ import {
   uploadMyAvatar,
 } from '@/services/profiles'
 import { resendEmailVerification } from '@/services/verification'
-import { Camera } from 'lucide-react'
+import { Camera01Icon } from '@/icons/actions'
+import { Icon } from '@/components/ui/Icon'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -74,7 +75,7 @@ export function ProfilePage() {
       <div>
         <Header title="You" />
         <div className="page-pad py-8">
-          <LoadingBlock />
+          <ListPageSkeleton />
         </div>
       </div>
     )
@@ -195,7 +196,7 @@ export function ProfilePage() {
               size="xl"
             />
             <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-bg-3 text-white">
-              <Camera className="h-3.5 w-3.5" />
+              <Icon icon={Camera01Icon} size={14} />
             </span>
           </button>
           <input
@@ -215,7 +216,7 @@ export function ProfilePage() {
             {!editing ? (
               <button
                 type="button"
-                className="mt-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-white/70 transition hover:text-white"
+                className="mt-3 text-[13px] font-medium text-white/70 transition hover:text-white"
                 onClick={startEditing}
               >
                 Edit profile
@@ -230,7 +231,7 @@ export function ProfilePage() {
 
         {editing ? (
           <section className="glass space-y-5 p-4">
-            <p className="label-caps">Edit profile</p>
+            <p className="field-label">Edit profile</p>
             <Field label="Name">
               <input
                 className="glass-input"
@@ -416,14 +417,12 @@ export function ProfilePage() {
         </section>
 
         <div className="glass overflow-hidden">
-          <MotionNavRow to="/my-games" label="Upcoming / past games" />
-          <MotionNavRow to="/groups" label="My groups" />
           <MotionNavRow to="/notifications" label="Notifications" />
           <MotionNavRow to="/venues/new?returnTo=create-game" label="Submit a venue" />
         </div>
 
         <section className="glass overflow-hidden">
-          <p className="label-caps px-4 pt-4">Settings</p>
+          <p className="field-label px-4 pt-4">Settings</p>
           <button
             type="button"
             className="motion-row flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-[14px] font-medium text-white transition hover:bg-white/[0.04]"
@@ -477,7 +476,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="label-caps mb-2 block">{label}</span>
+      <span className="field-label">{label}</span>
       {children}
     </label>
   )

@@ -8,7 +8,7 @@ export function AppLayout() {
     <div className="app-shell min-h-dvh bg-transparent">
       <BottomNavigation />
       <FloatingInstallButton />
-      <div className="lg:pl-52">
+      <div className="md:pl-16 lg:pl-52">
         <main className="chrome-scroll-main mx-auto min-h-dvh w-full max-w-3xl safe-bottom">
           <AnimatedOutlet />
           <SiteCredit />

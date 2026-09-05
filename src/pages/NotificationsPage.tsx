@@ -1,4 +1,4 @@
-import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { ListPageSkeleton } from '@/components/motion/Skeleton'
 import { MotionTextLink } from '@/components/motion/MotionLink'
 import { Header } from '@/components/layout/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -89,7 +89,7 @@ export function NotificationsPage() {
       />
       <div className="page-pad space-y-0 py-2">
         {loading ? (
-          <LoadingBlock className="my-4 h-32" />
+          <ListPageSkeleton />
         ) : error ? (
           <div className="py-4">
             <EmptyState title="Couldn't load" description={error} />

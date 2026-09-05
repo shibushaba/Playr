@@ -2,7 +2,8 @@ import { usePwaInstall } from '@/contexts/PwaInstallContext'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
 import { OverlaySheet } from '@/components/ui/OverlaySheet'
-import { Download } from 'lucide-react'
+import { Icon } from '@/components/ui/Icon'
+import { Download01Icon } from '@/icons/actions'
 import { useState } from 'react'
 
 export function InstallPrompt() {
@@ -29,7 +30,7 @@ export function InstallPrompt() {
       <div className="space-y-5 p-5">
         <div className="flex items-start gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-white/10 text-white">
-            <Download className="h-5 w-5" aria-hidden />
+            <Icon icon={Download01Icon} size={20} aria-hidden />
           </span>
           <div>
             <h2 className="text-[18px] font-semibold tracking-tight text-white">

@@ -5,7 +5,7 @@ import { PwaInstallProvider } from '@/contexts/PwaInstallContext'
 import { LocationProvider } from '@/contexts/LocationContext'
 import { AppLayout } from '@/layouts/AppLayout'
 import { PublicLayout } from '@/layouts/PublicLayout'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 
 const LandingPage = lazy(() =>
@@ -118,6 +118,11 @@ const AdminActivityPage = lazy(() =>
   })),
 )
 
+function RedirectId({ prefix }: { prefix: string }) {
+  const { id } = useParams()
+  return <Navigate to={`${prefix}/${id}`} replace />
+}
+
 function RouteFallback() {
   return (
     <div
@@ -168,9 +173,9 @@ export default function App() {
                   <Route path="/groups" element={<GroupsPage />} />
                   <Route path="/groups/new" element={<CreateGroupPage />} />
                   <Route path="/groups/:id" element={<GroupDetailsPage />} />
-                  <Route path="/game/:id" element={<GameDetailsPage />} />
-                  <Route path="/group/:id" element={<GroupDetailsPage />} />
-                  <Route path="/venue/:id" element={<VenueDetailsPage />} />
+                  <Route path="/game/:id" element={<RedirectId prefix="/games" />} />
+                  <Route path="/group/:id" element={<RedirectId prefix="/groups" />} />
+                  <Route path="/venue/:id" element={<RedirectId prefix="/venues" />} />
                 </Route>
 
                 <Route element={<AdminGate />}>

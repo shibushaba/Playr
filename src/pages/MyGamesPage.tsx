@@ -1,4 +1,4 @@
-import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { ListPageSkeleton } from '@/components/motion/Skeleton'
 import { PageContent } from '@/components/motion/PageContent'
 import { MotionTab, MotionTabBar } from '@/components/motion/MotionTab'
 import { GameCard } from '@/components/game/GameCard'
@@ -79,7 +79,7 @@ export function MyGamesPage() {
       <div>
         <Header title="Games" />
         <PageContent className="page-pad py-8">
-          <LoadingBlock />
+          <ListPageSkeleton />
         </PageContent>
       </div>
     )
@@ -101,13 +101,13 @@ export function MyGamesPage() {
 
   return (
     <div>
-      <Header title="Games" subtitle="Spots, hosting & history" />
+      <Header title="Games" subtitle="Your spots and hosting" />
       <PageContent className="page-pad py-5">
         <MotionTabBar>
           {(
             [
               ['upcoming', 'Upcoming'],
-              ['hosting', 'Hosted'],
+              ['hosting', 'Hosting'],
               ['past', 'Past'],
             ] as const
           ).map(([id, label]) => (
@@ -117,21 +117,21 @@ export function MyGamesPage() {
           ))}
         </MotionTabBar>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-5 space-y-2">
           {error ? (
             <EmptyState title="Couldn't load games" description={error} />
           ) : filtered.length === 0 ? (
             <EmptyState
               title={
                 tab === 'hosting'
-                  ? 'You are not hosting anything yet.'
+                  ? "You're not hosting yet."
                   : tab === 'past'
                     ? 'No past games yet.'
-                    : "You haven't joined any games yet."
+                    : "You haven't joined a game yet."
               }
               description={
                 tab === 'hosting'
-                  ? 'Use Host in the tab bar when you have a venue booked.'
+                  ? 'Host when you have a venue booked.'
                   : 'Find a nearby game on Play, or host one yourself.'
               }
               action={
@@ -145,14 +145,6 @@ export function MyGamesPage() {
           ) : (
             filtered.map((g) => <GameCard key={g.id} game={g} />)
           )}
-        </div>
-
-        <div className="glass mt-8 p-4">
-          <p className="label-caps">Check-in</p>
-          <p className="mt-2 text-[14px] leading-relaxed text-white/45">
-            For confirmed games, open the game page near kickoff to check in at
-            the venue — or ask the host if GPS is unavailable.
-          </p>
         </div>
       </PageContent>
     </div>

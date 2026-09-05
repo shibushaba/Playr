@@ -1,7 +1,8 @@
 import { CallButton } from '@/components/game/CallButton'
 import { formatPhoneDisplay } from '@/lib/phone'
 import { cn } from '@/lib/format'
-import { Check } from 'lucide-react'
+import { Tick02Icon } from '@/icons/actions'
+import { Icon } from '@/components/ui/Icon'
 import type { ReactNode } from 'react'
 
 export interface ChecklistItem {
@@ -61,7 +62,7 @@ function CheckRow({
             )}
             aria-hidden
           >
-            {done ? <Check className="motion-check-draw h-3.5 w-3.5" /> : '○'}
+            {done ? <Icon icon={Tick02Icon} size={14} className="motion-check-draw" /> : '○'}
           </span>
         </div>
         {action ? <div className="mt-3">{action}</div> : null}
@@ -159,7 +160,7 @@ export function HostPublishChecklist({
 
           {bookingConfirmed ? (
             <p className="flex items-center gap-2 text-[13px] font-semibold text-status-success">
-              <Check className="h-4 w-4" />
+              <Icon icon={Tick02Icon} size={16} />
               Booking confirmed
             </p>
           ) : null}

@@ -1,5 +1,5 @@
 import { CallButton } from '@/components/game/CallButton'
-import { LoadingBlock } from '@/components/motion/LoadingBlock'
+import { ListPageSkeleton } from '@/components/motion/Skeleton'
 import { GameCard } from '@/components/game/GameCard'
 import { Header } from '@/components/layout/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -76,7 +76,7 @@ export function VenueDetailsPage() {
       <div>
         <Header title="Venue" backTo="/explore" />
         <div className="page-pad py-8">
-          <LoadingBlock />
+          <ListPageSkeleton />
         </div>
       </div>
     )

@@ -1,18 +1,22 @@
+import { Icon } from '@/components/ui/Icon'
+import { Cancel01Icon } from '@/icons/actions'
+import { Search01Icon } from '@/icons/navigation'
 import { cn } from '@/lib/format'
-import { Search, X } from 'lucide-react'
 
 interface Props {
   value: string
   onChange: (value: string) => void
   placeholder?: string
   className?: string
+  autoFocus?: boolean
 }
 
 export function SearchBar({
   value,
   onChange,
-  placeholder = 'Search games, venues, sports…',
+  placeholder = 'Search games, venues, clubs…',
   className,
+  autoFocus,
 }: Props) {
   return (
     <label
@@ -21,12 +25,13 @@ export function SearchBar({
         className,
       )}
     >
-      <Search
+      <Icon
+        icon={Search01Icon}
+        size={18}
         className={cn(
-          'h-4 w-4 shrink-0 transition-opacity duration-[var(--motion-fast)]',
+          'shrink-0 transition-opacity duration-[var(--motion-fast)]',
           value ? 'text-white/55' : 'text-white/40',
         )}
-        strokeWidth={1.75}
         aria-hidden
       />
       <input
@@ -37,6 +42,7 @@ export function SearchBar({
         className="w-full bg-transparent text-[15px] text-white outline-none placeholder:text-white/35"
         type="search"
         enterKeyHint="search"
+        autoFocus={autoFocus}
       />
       {value ? (
         <button
@@ -45,7 +51,7 @@ export function SearchBar({
           onClick={() => onChange('')}
           className="motion-icon-btn motion-clear-in flex h-11 w-11 items-center justify-center rounded-[6px] border-0 bg-transparent p-0 text-white/40 shadow-none hover:bg-white/[0.06]"
         >
-          <X className="h-4 w-4" />
+          <Icon icon={Cancel01Icon} size={16} />
         </button>
       ) : null}
     </label>

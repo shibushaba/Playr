@@ -1,5 +1,6 @@
 import { cn } from '@/lib/format'
-import { Phone } from 'lucide-react'
+import { Icon } from '@/components/ui/Icon'
+import { CallIcon } from '@/icons/actions'
 
 interface Props {
   phone: string | null | undefined
@@ -31,7 +32,7 @@ export function CallButton({
           className,
         )}
       >
-        <Phone className="h-4 w-4" aria-hidden />
+        <Icon icon={CallIcon} size={16} aria-hidden />
       </a>
     )
   }
@@ -45,7 +46,7 @@ export function CallButton({
         className,
       )}
     >
-      <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <Icon icon={CallIcon} size={14} className="shrink-0" aria-hidden />
       {label}
     </a>
   )

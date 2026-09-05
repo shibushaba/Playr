@@ -16,7 +16,7 @@ export function AdminLayout() {
     <div className="min-h-dvh bg-transparent">
       <div className="mx-auto flex min-h-dvh w-full max-w-7xl">
         <aside className="hidden w-52 shrink-0 border-r border-white/10 bg-bg-2/40 p-4 lg:block">
-          <p className="label-caps mb-6 text-white/45">PLAYR Admin</p>
+        <p className="label-caps mb-6 text-white/45">PLAYR Admin</p>
           <nav className="space-y-1">
             {navItems.map((item) => (
               <NavLink
@@ -55,7 +55,7 @@ export function AdminLayout() {
                   end={item.end}
                   className={({ isActive }) =>
                     cn(
-                      'shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide',
+                      'shrink-0 rounded-full px-3 py-1 text-[12px] font-medium',
                       isActive
                         ? 'bg-white/15 text-white'
                         : 'bg-white/5 text-white/50',

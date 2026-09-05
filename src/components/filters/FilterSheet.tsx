@@ -1,11 +1,12 @@
 import { MotionChip } from '@/components/motion/MotionChip'
 import { MotionIconButton } from '@/components/motion/MotionIconButton'
+import { Icon } from '@/components/ui/Icon'
 import { OverlaySheet } from '@/components/ui/OverlaySheet'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { SecondaryButton } from '@/components/ui/SecondaryButton'
+import { Cancel01Icon } from '@/icons/actions'
 import { RADIUS_OPTIONS } from '@/lib/location'
 import type { SportRecord, UiGameStatus } from '@/types/domain'
-import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
 
 export interface FilterState {
@@ -23,6 +24,7 @@ interface Props {
   value: FilterState
   onChange: (next: FilterState) => void
   sports?: SportRecord[]
+  resultCount?: number | null
 }
 
 const statuses: Array<UiGameStatus | 'all'> = [
@@ -39,6 +41,7 @@ export function FilterSheet({
   value,
   onChange,
   sports = [],
+  resultCount,
 }: Props) {
   useEffect(() => {
     if (!open) return
@@ -53,23 +56,31 @@ export function FilterSheet({
 
   if (!open) return null
 
+  const countLabel =
+    resultCount == null
+      ? 'Show games'
+      : resultCount === 1
+        ? 'Show 1 game'
+        : `Show ${resultCount} games`
+
   return (
     <OverlaySheet
       onClose={onClose}
       closeLabel="Close filters"
       lockScroll
       panelClassName="max-h-[85dvh]"
-      panelContentClassName="max-h-[85dvh] overflow-y-auto p-5"
+      panelContentClassName="flex max-h-[85dvh] flex-col p-0"
     >
-        <div className="mb-6 flex items-center justify-between border-b border-white/10 pb-4">
-          <h2 className="text-[18px] font-semibold tracking-tight text-white">
-            Filters
-          </h2>
-          <MotionIconButton onClick={onClose} aria-label="Close">
-            <X className="h-5 w-5" />
-          </MotionIconButton>
-        </div>
+      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <h2 className="text-[18px] font-semibold tracking-tight text-white">
+          Filters
+        </h2>
+        <MotionIconButton onClick={onClose} aria-label="Close">
+          <Icon icon={Cancel01Icon} size={18} />
+        </MotionIconButton>
+      </div>
 
+      <div className="flex-1 overflow-y-auto px-5 py-4">
         <Section title="Sport">
           <div className="flex flex-wrap gap-2">
             <MotionChip
@@ -170,27 +181,28 @@ export function FilterSheet({
             ))}
           </div>
         </Section>
+      </div>
 
-        <div className="mt-6 flex gap-3">
-          <SecondaryButton
-            fullWidth
-            onClick={() =>
-              onChange({
-                sport: 'all',
-                status: 'all',
-                when: 'any',
-                chooseDate: null,
-                timeBucket: 'any',
-                radiusMeters: 10_000,
-              })
-            }
-          >
-            Reset
-          </SecondaryButton>
-          <PrimaryButton fullWidth onClick={onClose}>
-            Show games
-          </PrimaryButton>
-        </div>
+      <div className="sticky bottom-0 flex gap-3 border-t border-white/10 bg-[rgba(18,18,21,0.72)] px-5 py-4 backdrop-blur-md">
+        <SecondaryButton
+          fullWidth
+          onClick={() =>
+            onChange({
+              sport: 'all',
+              status: 'all',
+              when: 'any',
+              chooseDate: null,
+              timeBucket: 'any',
+              radiusMeters: 10_000,
+            })
+          }
+        >
+          Reset
+        </SecondaryButton>
+        <PrimaryButton fullWidth onClick={onClose}>
+          {countLabel}
+        </PrimaryButton>
+      </div>
     </OverlaySheet>
   )
 }
@@ -204,9 +216,8 @@ function Section({
 }) {
   return (
     <div className="mb-6">
-      <p className="label-caps mb-3">{title}</p>
+      <p className="field-label">{title}</p>
       {children}
     </div>
   )
 }
-
