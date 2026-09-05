@@ -418,7 +418,12 @@ export function HostPage() {
                 <p className="mt-1 text-[13px] text-white/45">
                   {[
                     selectedVenue.address,
-                    selectedVenue.city,
+                    selectedVenue.city &&
+                    !selectedVenue.address
+                      ?.toLowerCase()
+                      .includes(selectedVenue.city.toLowerCase())
+                      ? selectedVenue.city
+                      : null,
                     selectedVenue.distanceLabel,
                   ]
                     .filter(Boolean)
@@ -438,6 +443,13 @@ export function HostPage() {
                 ) : venuePhoneLoading ? (
                   <p className="mt-4 text-[12px] text-white/45">Loading venue contact…</p>
                 ) : null}
+                <PrimaryButton
+                  className="mt-4"
+                  fullWidth
+                  onClick={() => setStep(3)}
+                >
+                  Confirm venue
+                </PrimaryButton>
               </div>
             ) : null}
 

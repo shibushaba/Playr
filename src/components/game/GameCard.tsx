@@ -5,7 +5,7 @@ import {
   getOccupancy,
   glowStateForGame,
 } from '@/lib/availability'
-import { cn, formatDay, formatTime } from '@/lib/format'
+import { cn, formatDay, formatTimeParts } from '@/lib/format'
 import type { GameListItem } from '@/types/domain'
 import { Link } from 'react-router-dom'
 
@@ -67,6 +67,7 @@ export function GameCard({ game, className, featured, compact = true }: Props) {
         ? 'filling'
         : null
   const cardGlow = glowState ?? participantGlow
+  const { clock, period } = formatTimeParts(game.startsAt)
   const meta = (
     banner ? (
       <ParticipantStatus label={banner.label} tone={banner.tone} />
@@ -97,11 +98,18 @@ export function GameCard({ game, className, featured, compact = true }: Props) {
       >
         {cardGlow ? <CardSemanticGlow state={cardGlow} /> : null}
         <div className="relative z-[1] flex gap-4">
-          <div className="flex h-[4.5rem] w-[4.5rem] shrink-0 flex-col items-center justify-center rounded-[8px] bg-white/[0.08]">
+          <div className="flex w-[4.75rem] shrink-0 flex-col items-center rounded-[8px] bg-white/[0.08] px-1.5 py-2.5">
             <p className="font-[family-name:var(--font-display)] text-[20px] font-semibold tabular-nums leading-none text-white">
-              {formatTime(game.startsAt)}
+              {clock}
             </p>
-            <p className="mt-1 text-[11px] text-white/45">{formatDay(game.startsAt)}</p>
+            {period ? (
+              <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.08em] leading-none text-white/50">
+                {period}
+              </p>
+            ) : null}
+            <p className="mt-1.5 text-[11px] leading-none text-white/45">
+              {formatDay(game.startsAt)}
+            </p>
           </div>
           <div className="min-w-0 flex-1">
             <p className="label-caps">{game.sport.name}</p>
@@ -129,11 +137,18 @@ export function GameCard({ game, className, featured, compact = true }: Props) {
     >
       {cardGlow ? <CardSemanticGlow state={cardGlow} /> : null}
       <div className="relative z-[1] flex min-w-0 flex-1 items-center gap-3">
-        <div className="w-14 shrink-0">
-          <p className="font-[family-name:var(--font-display)] text-[16px] font-semibold tabular-nums text-white">
-            {formatTime(game.startsAt)}
+        <div className="w-[3.25rem] shrink-0">
+          <p className="font-[family-name:var(--font-display)] text-[16px] font-semibold tabular-nums leading-none text-white">
+            {clock}
           </p>
-          <p className="mt-0.5 text-[11px] text-white/40">{formatDay(game.startsAt)}</p>
+          {period ? (
+            <p className="mt-1 text-[10px] font-medium uppercase leading-none text-white/40">
+              {period}
+            </p>
+          ) : null}
+          <p className="mt-1.5 text-[11px] leading-none text-white/40">
+            {formatDay(game.startsAt)}
+          </p>
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[14px] font-medium text-white">

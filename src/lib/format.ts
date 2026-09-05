@@ -32,6 +32,17 @@ export function formatTime(iso: string): string {
   })
 }
 
+/** Split "7:00 pm" so tiles can stack clock, period, and day without wrapping. */
+export function formatTimeParts(iso: string): { clock: string; period: string | null } {
+  const formatted = formatTime(iso).trim()
+  const match = formatted.match(/^(.*?)(?:\s*([ap]\.?m\.?))$/i)
+  if (!match) return { clock: formatted, period: null }
+  return {
+    clock: match[1].trim(),
+    period: match[2].replace(/\./g, '').toLowerCase(),
+  }
+}
+
 export function formatDay(iso: string): string {
   const d = new Date(iso)
   const today = new Date()
